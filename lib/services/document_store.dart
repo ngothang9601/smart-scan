@@ -174,6 +174,7 @@ class DocumentStore extends ChangeNotifier {
       processedFile: processedName,
       quad: Quad.full,
       filter: ScanFilter.original,
+      composed: true,
     );
     _put(doc.copyWith(pages: [...doc.pages, page]));
     await _save();

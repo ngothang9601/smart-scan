@@ -144,6 +144,8 @@ main { padding-block: 16px 120px; }
 .layouts { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
 .layout { flex: none; width: 92px; display: grid; justify-items: center; gap: 6px; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 12px; text-align: center; }
 .layout.on { border: 2px solid var(--accent); color: var(--accent); font-weight: 600; }
+.preview { display: grid; place-items: center; margin-bottom: 14px; }
+.preview svg { box-shadow: var(--shadow); max-width: 100%; height: auto; }
 .hint { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
 .pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .pick-item { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunken); aspect-ratio: 3 / 4; }
@@ -783,33 +785,50 @@ async function composeLayout(blobs, id) {
   return page;
 }
 function layoutSheet(doc) {
-  let layout = LAYOUTS[0], sel = [];
+  // Tự điền khung bằng các trang quét theo đúng thứ tự (bỏ qua trang đã ghép).
+  const sources = () => { const s = doc.pages.filter(p => !p.layout); return s.length ? s : doc.pages; };
+  const autoFill = () => sources().slice(0, layout.n).map(p => p.id);
+  let layout = LAYOUTS[0], sel = autoFill();
   sheet("Ghép trang theo khung", `<div id="lay"></div>`, async (el, close) => {
     const thumbs = {}; for (const p of doc.pages) thumbs[p.id] = await urls.get(p.id + ":thumb");
+    // Xem trước trang A4 với ảnh đã đính vào từng ô.
+    const previewSvg = () => `<svg viewBox="0 0 ${A4W} ${A4H}" width="180" height="${Math.round(180 * A4H / A4W)}" role="img" aria-label="Xem trước trang ghép"><rect width="${A4W}" height="${A4H}" fill="#fff" stroke="#9aa" stroke-width="8"/>${layoutSlots(layout.id).map(([x, y, w, h], k) => sel[k]
+      ? `<image href="${thumbs[sel[k]]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--accent)" opacity=".18"/><text x="${x + w / 2}" y="${y + h / 2}" font-size="60" text-anchor="middle" dominant-baseline="middle" fill="var(--muted)">${k + 1}</text>`).join("")}</svg>`;
     const draw = () => {
       el.querySelector("#lay").innerHTML = `
         <div class="section-label">1. Chọn mẫu khung</div>
         <div class="layouts">${LAYOUTS.map(l => `<button class="layout ${l === layout ? "on" : ""}" data-l="${l.id}">${layoutIcon(l.id)}<span>${l.label}</span></button>`).join("")}</div>
         <p class="hint">${esc(layout.hint)}</p>
-        <div class="section-label">2. Chọn ${layout.n} trang theo thứ tự · ${sel.length}/${layout.n}</div>
+        <div class="preview">${previewSvg()}</div>
+        <div class="section-label">2. Các trang được điền vào khung · ${sel.length}/${layout.n}</div>
+        <p class="hint">Đã tự điền theo thứ tự. Chạm vào trang để bỏ hoặc chọn lại.</p>
         <div class="pick">${doc.pages.map((p, i) => { const o = sel.indexOf(p.id);
           return `<button class="pick-item ${o >= 0 ? "on" : ""}" data-p="${p.id}" aria-pressed="${o >= 0}"><img src="${thumbs[p.id]}" alt="Trang ${i + 1}"><b>${o >= 0 ? o + 1 : i + 1}</b></button>`; }).join("")}</div>
-        <div class="confirm-row"><button class="btn primary" id="b-make" ${sel.length ? "" : "disabled"}>${I.layout} Tạo trang ghép</button></div>`;
-      el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { layout = LAYOUTS.find(l => l.id === b.dataset.l); sel = sel.slice(-layout.n); draw(); });
+        <div class="confirm-row">${sources().length > layout.n ? `<button class="btn" id="b-all">Ghép tất cả (${Math.ceil(sources().length / layout.n)} trang)</button>` : ""}<button class="btn primary" id="b-make" ${sel.length ? "" : "disabled"}>${I.layout} Tạo trang ghép</button></div>`;
+      el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { layout = LAYOUTS.find(l => l.id === b.dataset.l); sel = autoFill(); draw(); });
       el.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const id = b.dataset.p, k = sel.indexOf(id);
         if (k >= 0) sel.splice(k, 1); else { if (sel.length >= layout.n) sel.shift(); sel.push(id); } draw(); });
-      el.querySelector("#b-make").onclick = async () => {
-        close(); busy("Đang ghép trang…");
+      const make = async groups => {
+        close();
         try {
-          const blobs = []; for (const id of sel) blobs.push(await store.getBlob(id + ":proc"));
-          const composed = await composeLayout(blobs, layout.id);
-          const page = { id: uid(), quad: FULL_QUAD.map(p => p.slice()), filter: "original", turns: 0, ocr: null, w: A4W, h: A4H, layout: layout.id };
-          await store.putBlob(page.id + ":orig", await toBlob(composed, 0.92));
-          await renderPageBlobs(page, composed);
-          doc.pages.push(page); await store.saveDoc(doc); busy();
-          go("page", { docId: doc.id, index: doc.pages.length - 1 });
+          const first = doc.pages.length;
+          for (let g = 0; g < groups.length; g++) {
+            busy(groups.length > 1 ? `Đang ghép trang ${g + 1}/${groups.length}…` : "Đang ghép trang…");
+            const blobs = []; for (const id of groups[g]) blobs.push(await store.getBlob(id + ":proc"));
+            const composed = await composeLayout(blobs, layout.id);
+            const page = { id: uid(), quad: FULL_QUAD.map(p => p.slice()), filter: "original", turns: 0, ocr: null, w: A4W, h: A4H, layout: layout.id };
+            await store.putBlob(page.id + ":orig", await toBlob(composed, 0.92));
+            await renderPageBlobs(page, composed);
+            doc.pages.push(page); await store.saveDoc(doc);
+          }
+          busy(); go("page", { docId: doc.id, index: first });
         } catch (e) { busy(); toast("Không ghép được: " + (e.message || e)); }
       };
+      el.querySelector("#b-make").onclick = () => make([sel]);
+      const all = el.querySelector("#b-all");
+      if (all) all.onclick = () => { const ids = sources().map(p => p.id), groups = [];
+        for (let i = 0; i < ids.length; i += layout.n) groups.push(ids.slice(i, i + layout.n)); make(groups); };
     };
     draw();
   });

@@ -29,6 +29,9 @@ class ScanPage {
   final String? ocrText;
   final List<OcrLine> ocrLines;
 
+  /// Trang được ghép từ nhiều trang khác theo mẫu khung.
+  final bool composed;
+
   const ScanPage({
     required this.id,
     required this.originalFile,
@@ -38,6 +41,7 @@ class ScanPage {
     this.quarterTurns = 0,
     this.ocrText,
     this.ocrLines = const [],
+    this.composed = false,
   });
 
   ScanPage copyWith({
@@ -58,6 +62,7 @@ class ScanPage {
         quarterTurns: quarterTurns ?? this.quarterTurns,
         ocrText: clearOcr ? null : (ocrText ?? this.ocrText),
         ocrLines: clearOcr ? const [] : (ocrLines ?? this.ocrLines),
+        composed: composed,
       );
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +74,7 @@ class ScanPage {
         'turns': quarterTurns,
         if (ocrText != null) 'ocr': ocrText,
         if (ocrLines.isNotEmpty) 'ocrLines': ocrLines.map((l) => l.toJson()).toList(),
+        if (composed) 'composed': true,
       };
 
   factory ScanPage.fromJson(Map<String, dynamic> j) => ScanPage(
@@ -83,6 +89,7 @@ class ScanPage {
         ocrLines: (j['ocrLines'] as List? ?? const [])
             .map((l) => OcrLine.fromJson(l as List))
             .toList(),
+        composed: j['composed'] == true,
       );
 }
 
