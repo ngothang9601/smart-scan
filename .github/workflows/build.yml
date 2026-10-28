@@ -1,6 +1,6 @@
 # Tự động build app mỗi khi đẩy mã lên nhánh main:
 #  - Android: tệp APK cài trực tiếp, đăng ở mục Releases (tag "latest")
-#  - Web/iPhone: bản PWA đăng trên GitHub Pages, mở bằng Safari rồi "Thêm vào MH chính"
+#  - Web/iPhone: bản PWA đẩy lên nhánh gh-pages (GitHub Pages), mở bằng Safari rồi "Thêm vào MH chính"
 name: Build Smart Scan
 
 on:
@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: build-${{ github.ref }}
@@ -50,17 +48,13 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - run: bash web/build.sh
-      - uses: actions/configure-pages@v5
+      # Đẩy bản web lên nhánh gh-pages; GitHub tự bật Pages cho nhánh này.
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/dist
-      - id: deploy
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web/dist
+          publish_branch: gh-pages
+          force_orphan: true

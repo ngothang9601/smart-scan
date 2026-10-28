@@ -92,5 +92,5 @@ Trang ghép được thêm vào cuối tài liệu và xuất PDF như mọi tra
 Đẩy mã lên một repo GitHub (nhánh `main`), quy trình `.github/workflows/build.yml` sẽ tự chạy:
 - **Android**: tệp `SmartScan.apk` xuất hiện ở mục **Releases** của repo, tải về điện thoại để cài.
 - **iPhone / máy tính**: bản web được đăng lên **GitHub Pages** (`https://<tên>.github.io/<repo>/`). Trên iPhone mở link bằng
-  Safari → nút Chia sẻ → **Thêm vào MH chính** để có biểu tượng như một app. Lần đầu cần bật Pages:
-  Settings → Pages → Source: **GitHub Actions**.
+  Safari → nút Chia sẻ → **Thêm vào MH chính** để có biểu tượng như một app. Nếu link chưa mở được, vào
+  Settings → Pages, chọn Source: **Deploy from a branch**, nhánh **gh-pages**.
