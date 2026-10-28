@@ -108,4 +108,32 @@ void main() {
     // Vùng gốc rộng 480 x cao 600, xoay 90° -> rộng ~600, cao ~480.
     expect(out.width, greaterThan(out.height));
   });
+
+  test('mẫu khung: ô nằm trong trang A4, thẻ CCCD đúng cỡ thật', () {
+    for (final l in PageLayout.values) {
+      for (final [x, y, w, h] in layoutSlots(l)) {
+        expect(x >= 0 && y >= 0 && x + w <= a4Width && y + h <= a4Height, isTrue);
+      }
+    }
+    final card = layoutSlots(PageLayout.idCard).first;
+    expect(card[2] / 150 * 25.4, closeTo(85.6, 0.5));
+    expect(card[3] / 150 * 25.4, closeTo(54, 0.5));
+  });
+
+  test('ghép 2 mặt CCCD vào trang A4', () {
+    final front = img.Image(width: 856, height: 540);
+    img.fill(front, color: img.ColorRgb8(200, 30, 30));
+    final back = img.Image(width: 540, height: 856); // ảnh dọc sẽ được xoay ngang
+    img.fill(back, color: img.ColorRgb8(30, 30, 200));
+    final out = img.decodeJpg(composeLayout(
+        ([img.encodeJpg(front), img.encodeJpg(back)], PageLayout.idCard)))!;
+    expect(out.width, a4Width);
+    expect(out.height, a4Height);
+    final s = layoutSlots(PageLayout.idCard);
+    final p1 = out.getPixel(s[0][0] + s[0][2] ~/ 2, s[0][1] + s[0][3] ~/ 2);
+    final p2 = out.getPixel(s[1][0] + s[1][2] ~/ 2, s[1][1] + s[1][3] ~/ 2);
+    expect(p1.r, greaterThan(150));
+    expect(p2.b, greaterThan(150));
+    expect(out.getPixel(20, 20).r, greaterThan(240));
+  });
 }

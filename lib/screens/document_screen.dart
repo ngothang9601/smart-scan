@@ -7,6 +7,7 @@ import '../services/document_store.dart';
 import '../services/ocr_service.dart';
 import '../services/pdf_service.dart';
 import '../ui/helpers.dart';
+import 'layout_screen.dart';
 import 'page_editor_screen.dart';
 import 'scan_flow.dart';
 
@@ -114,6 +115,9 @@ class _DocumentScreenState extends State<DocumentScreen> {
                     await _rename(doc);
                   case 'images':
                     await _shareImages(anchor, doc);
+                  case 'layout':
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => LayoutScreen(docId: doc.id)));
                   case 'ocr':
                     await _ocrAll(doc);
                   case 'copy':
@@ -134,6 +138,7 @@ class _DocumentScreenState extends State<DocumentScreen> {
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit), title: Text('Đổi tên'))),
                 PopupMenuItem(value: 'images', child: ListTile(leading: Icon(Icons.image_outlined), title: Text('Chia sẻ ảnh JPG'))),
+                PopupMenuItem(value: 'layout', child: ListTile(leading: Icon(Icons.dashboard_customize_outlined), title: Text('Ghép trang theo khung'))),
                 PopupMenuItem(value: 'ocr', child: ListTile(leading: Icon(Icons.text_fields), title: Text('Nhận dạng chữ (tất cả)'))),
                 PopupMenuItem(value: 'copy', child: ListTile(leading: Icon(Icons.copy), title: Text('Sao chép văn bản'))),
                 PopupMenuItem(value: 'duplicate', child: ListTile(leading: Icon(Icons.file_copy_outlined), title: Text('Nhân bản'))),

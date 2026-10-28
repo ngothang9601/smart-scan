@@ -144,3 +144,25 @@ extension ScanFilterLabel on ScanFilter {
         ScanFilter.blackWhite => 'Đen trắng',
       };
 }
+
+extension PageLayoutLabel on PageLayout {
+  String get label => switch (this) {
+        PageLayout.idCard => 'CCCD / thẻ 2 mặt',
+        PageLayout.two => '2 ảnh một trang',
+        PageLayout.four => '4 ảnh một trang',
+        PageLayout.six => '6 ảnh một trang',
+      };
+
+  String get hint => switch (this) {
+        PageLayout.idCard => 'Mặt trước và mặt sau, in đúng cỡ thẻ thật trên A4',
+        PageLayout.two => 'Hai ảnh xếp trên dưới',
+        PageLayout.four => 'Lưới 2 × 2',
+        PageLayout.six => 'Lưới 2 × 3',
+      };
+
+  int get slots => switch (this) {
+        PageLayout.idCard || PageLayout.two => 2,
+        PageLayout.four => 4,
+        PageLayout.six => 6,
+      };
+}

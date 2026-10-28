@@ -42,6 +42,10 @@ void main() {
     expect(store.byId(doc.id)!.pages.last.id, firstId);
     await store.rename(doc.id, 'Hợp đồng thuê nhà');
     await store.addPages(doc.id, [samplePhoto()]);
+    final composed = await store.addLayoutPage(
+        doc.id, [for (final p in store.byId(doc.id)!.pages.take(2)) p.id], PageLayout.idCard);
+    expect(store.byId(doc.id)!.pages.last.id, composed.id);
+    await store.deletePage(doc.id, composed.id);
 
     final again = DocumentStore(root: tmp);
     await again.load();

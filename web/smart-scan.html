@@ -123,7 +123,7 @@ main { padding-block: 16px 120px; }
 .handle::after { content: ""; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.92); border: 3px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .loupe { position: absolute; width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.5); background: #000; }
 
-.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: grid; align-items: end; justify-items: center; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: grid; grid-template-columns: minmax(0, 760px); justify-content: center; align-items: end; }
 .sheet { background: var(--surface); color: var(--ink); width: 100%; max-width: 760px; max-height: 85vh; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet .head { display: flex; align-items: center; gap: 8px; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
 .sheet .head h2 { font-size: 16px; margin: 0; flex: 1; }
@@ -141,6 +141,16 @@ main { padding-block: 16px 120px; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; z-index: 40; font-size: 14px; max-width: 90vw; }
 .confirm-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.layouts { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.layout { flex: none; width: 92px; display: grid; justify-items: center; gap: 6px; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 12px; text-align: center; }
+.layout.on { border: 2px solid var(--accent); color: var(--accent); font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
+.pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.pick-item { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunken); aspect-ratio: 3 / 4; }
+.pick-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pick-item b { position: absolute; top: 4px; right: 4px; min-width: 22px; height: 22px; border-radius: 11px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; display: grid; place-items: center; }
+.pick-item.on { outline: 3px solid var(--accent); outline-offset: -3px; }
+.pick-item.on b { background: var(--accent); color: var(--on-accent); }
 .hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 </style>
 
@@ -176,6 +186,7 @@ const I = {
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   moveL: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H8M12 7l-5 5 5 5M4 5v14"/></svg>',
   moveR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h12M12 7l5 5-5 5M20 5v14"/></svg>',
+  layout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><rect x="8" y="6" width="8" height="5" rx=".5"/><rect x="8" y="13" width="8" height="5" rx=".5"/></svg>',
   dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h10v10H9zM5 15V5h10"/></svg>',
 };
 
@@ -552,9 +563,30 @@ async function copyText(text, fallbackEl) {
 }
 
 // Năng lực của trang: tải tệp và hỏi Claude (dùng cho nhận dạng chữ).
-const caps = { downloads: null, sample: null, ocr: false };
+const caps = { downloads: null, sample: null, ocr: false, standalone: !window.claude?.use };
+// Chạy độc lập (GitHub Pages, cài ra màn hình chính): tải tệp bằng liên kết, đọc chữ bằng Tesseract.
+if (caps.standalone) {
+  caps.downloads = { save: async ({ filename, data }) => {
+    const file = new File([data], filename, { type: data.type || "application/octet-stream" });
+    if (navigator.canShare?.({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+      try { await navigator.share({ files: [file], title: filename }); return; } catch (e) { if (e?.name === "AbortError") return; }
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = filename;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  } };
+  caps.ocr = true;
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+let tesseract = null;
+async function tesseractWorker() {
+  if (tesseract) return tesseract;
+  if (!window.Tesseract) await new Promise((res, rej) => { const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; sc.onload = res; sc.onerror = () => rej(new Error("Không tải được bộ đọc chữ, hãy kiểm tra mạng")); document.head.append(sc); });
+  tesseract = await Tesseract.createWorker("vie+eng");
+  return tesseract;
+}
 (async () => {
-  if (!window.claude?.use) return;
+  if (caps.standalone) return;
   try { caps.downloads = await claude.use("downloads"); } catch {}
   try {
     caps.sample = await claude.use("sample");
@@ -647,6 +679,7 @@ async function renderDoc() {
     <button class="icon-btn" id="b-back" aria-label="Quay lại">${I.back}</button>
     <div class="grow"><input class="title-input" id="name" value="${esc(doc.name)}" aria-label="Tên tài liệu"></div>
     <button class="icon-btn" id="b-ocr" aria-label="Nhận dạng chữ tất cả trang" title="Nhận dạng chữ" ${caps.ocr ? "" : "hidden"}>${I.text}</button>
+    <button class="icon-btn" id="b-layout" aria-label="Ghép trang theo khung" title="Ghép trang theo khung">${I.layout}</button>
     <button class="icon-btn" id="b-dup" aria-label="Nhân bản" title="Nhân bản">${I.dup}</button>
     <button class="icon-btn" id="b-del" aria-label="Xoá tài liệu" title="Xoá tài liệu">${I.trash}</button>
   </div></header>
@@ -676,6 +709,7 @@ async function renderDoc() {
     await store.saveDoc(copy); busy(); toast("Đã tạo bản sao"); go("doc", { docId: copy.id });
   };
   app.querySelector("#b-ocr").onclick = () => ocrDoc(doc);
+  app.querySelector("#b-layout").onclick = () => layoutSheet(doc);
   app.querySelector("#b-add").onclick = () => pick("camera", doc.id);
   app.querySelector("#b-addg").onclick = () => pick("gallery", doc.id);
   app.querySelector("#b-pdf").onclick = () => exportPdf(doc);
@@ -716,8 +750,78 @@ function exportPdf(doc) {
     }));
 }
 
+// =====================================================================
+// Mẫu khung: ghép nhiều trang vào một trang A4 (150 dpi)
+// =====================================================================
+const A4W = 1240, A4H = 1754;
+const LAYOUTS = [
+  { id: "idcard", label: "CCCD / thẻ 2 mặt", hint: "Mặt trước và mặt sau, in đúng cỡ thẻ thật 85,6 × 54 mm", n: 2 },
+  { id: "two", label: "2 ảnh", hint: "Hai ảnh xếp trên dưới", n: 2 },
+  { id: "four", label: "4 ảnh", hint: "Lưới 2 × 2", n: 4 },
+  { id: "six", label: "6 ảnh", hint: "Lưới 2 × 3", n: 6 },
+];
+function layoutSlots(id) {
+  const m = 70, gap = 40, w = A4W - 2 * m, h = A4H - 2 * m;
+  const grid = (cols, rows) => { const cw = ((w - gap * (cols - 1)) / cols) | 0, ch = ((h - gap * (rows - 1)) / rows) | 0, out = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([m + c * (cw + gap), m + r * (ch + gap), cw, ch]); return out; };
+  if (id === "idcard") { const cw = 506, ch = 319, x = ((A4W - cw) / 2) | 0; return [[x, 360, cw, ch], [x, 360 + ch + 120, cw, ch]]; }
+  return id === "two" ? grid(1, 2) : id === "four" ? grid(2, 2) : grid(2, 3);
+}
+function layoutIcon(id) {
+  return `<svg viewBox="0 0 ${A4W} ${A4H}" width="62" height="88"><rect width="${A4W}" height="${A4H}" fill="#fff" stroke="#9aa" stroke-width="16"/>${layoutSlots(id).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="20" fill="var(--accent)" opacity=".45"/>`).join("")}</svg>`;
+}
+async function composeLayout(blobs, id) {
+  const page = canvasOf(A4W, A4H), x = page.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, A4W, A4H); x.imageSmoothingQuality = "high";
+  const slots = layoutSlots(id);
+  for (let i = 0; i < slots.length && i < blobs.length; i++) {
+    let c = await blobToCanvas(blobs[i]);
+    if (id === "idcard" && c.height > c.width) c = rotate(c, 1); // thẻ chụp dọc thì xoay ngang
+    const [sx, sy, sw, sh] = slots[i], s = Math.min(sw / c.width, sh / c.height), w = c.width * s, h = c.height * s;
+    x.drawImage(c, sx + (sw - w) / 2, sy + (sh - h) / 2, w, h);
+  }
+  return page;
+}
+function layoutSheet(doc) {
+  let layout = LAYOUTS[0], sel = [];
+  sheet("Ghép trang theo khung", `<div id="lay"></div>`, async (el, close) => {
+    const thumbs = {}; for (const p of doc.pages) thumbs[p.id] = await urls.get(p.id + ":thumb");
+    const draw = () => {
+      el.querySelector("#lay").innerHTML = `
+        <div class="section-label">1. Chọn mẫu khung</div>
+        <div class="layouts">${LAYOUTS.map(l => `<button class="layout ${l === layout ? "on" : ""}" data-l="${l.id}">${layoutIcon(l.id)}<span>${l.label}</span></button>`).join("")}</div>
+        <p class="hint">${esc(layout.hint)}</p>
+        <div class="section-label">2. Chọn ${layout.n} trang theo thứ tự · ${sel.length}/${layout.n}</div>
+        <div class="pick">${doc.pages.map((p, i) => { const o = sel.indexOf(p.id);
+          return `<button class="pick-item ${o >= 0 ? "on" : ""}" data-p="${p.id}" aria-pressed="${o >= 0}"><img src="${thumbs[p.id]}" alt="Trang ${i + 1}"><b>${o >= 0 ? o + 1 : i + 1}</b></button>`; }).join("")}</div>
+        <div class="confirm-row"><button class="btn primary" id="b-make" ${sel.length ? "" : "disabled"}>${I.layout} Tạo trang ghép</button></div>`;
+      el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { layout = LAYOUTS.find(l => l.id === b.dataset.l); sel = sel.slice(-layout.n); draw(); });
+      el.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const id = b.dataset.p, k = sel.indexOf(id);
+        if (k >= 0) sel.splice(k, 1); else { if (sel.length >= layout.n) sel.shift(); sel.push(id); } draw(); });
+      el.querySelector("#b-make").onclick = async () => {
+        close(); busy("Đang ghép trang…");
+        try {
+          const blobs = []; for (const id of sel) blobs.push(await store.getBlob(id + ":proc"));
+          const composed = await composeLayout(blobs, layout.id);
+          const page = { id: uid(), quad: FULL_QUAD.map(p => p.slice()), filter: "original", turns: 0, ocr: null, w: A4W, h: A4H, layout: layout.id };
+          await store.putBlob(page.id + ":orig", await toBlob(composed, 0.92));
+          await renderPageBlobs(page, composed);
+          doc.pages.push(page); await store.saveDoc(doc); busy();
+          go("page", { docId: doc.id, index: doc.pages.length - 1 });
+        } catch (e) { busy(); toast("Không ghép được: " + (e.message || e)); }
+      };
+    };
+    draw();
+  });
+}
+
 // Nhận dạng chữ bằng Claude (ảnh trang được gửi cho Claude đọc).
 async function ocrPage(page) {
+  if (caps.standalone) {
+    const w = await tesseractWorker();
+    const { data } = await w.recognize(await store.getBlob(page.id + ":proc"));
+    return (data.text || "").trim();
+  }
   let blob = await store.getBlob(page.id + ":proc");
   if (blob.size > (caps.maxImg || 4e6)) blob = await toBlob(scaleCanvas(await blobToCanvas(blob), 1600), 0.8);
   const r = await caps.sample(

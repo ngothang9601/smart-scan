@@ -76,5 +76,21 @@ Yêu cầu iOS 15.5 trở lên (do ML Kit). Cần tài khoản Apple Developer �
 Font `assets/fonts/NotoSans-Regular.ttf` theo giấy phép SIL Open Font License 1.1 (xem `assets/fonts/OFL.txt`).
 
 ## Bản web
-`web/smart-scan.html` là bản chạy trên trình duyệt (một tệp HTML): chọn hoặc chụp ảnh, tự nhận diện mép giấy, cắt, nắn thẳng,
-bộ lọc, nhiều trang, xuất PDF. Tài liệu được lưu trong trình duyệt (IndexedDB).
+`web/smart-scan.html` là bản chạy trên trình duyệt (một tệp HTML): chụp hoặc chọn ảnh, tự nhận diện mép giấy, cắt, nắn thẳng,
+bộ lọc, ghép khung, nhiều trang, đọc chữ, xuất PDF. Tài liệu được lưu trong trình duyệt (IndexedDB).
+`bash web/build.sh` tạo bản PWA trong `web/dist` (có biểu tượng, chạy toàn màn hình, dùng được khi không có mạng),
+đọc chữ bằng Tesseract (tiếng Việt + tiếng Anh) khi chạy ngoài claude.ai.
+
+## Mẫu khung (ghép nhiều ảnh trên một trang)
+Trong một tài liệu, mở menu → **Ghép trang theo khung**, chọn mẫu rồi chọn trang theo thứ tự:
+- **CCCD / thẻ 2 mặt**: mặt trước và mặt sau trên một tờ A4, in ra đúng cỡ thẻ thật 85,6 × 54 mm
+- **2 ảnh**, **4 ảnh** (2 × 2), **6 ảnh** (2 × 3) trên một trang A4
+
+Trang ghép được thêm vào cuối tài liệu và xuất PDF như mọi trang khác.
+
+## Tự build app bằng GitHub
+Đẩy mã lên một repo GitHub (nhánh `main`), quy trình `.github/workflows/build.yml` sẽ tự chạy:
+- **Android**: tệp `SmartScan.apk` xuất hiện ở mục **Releases** của repo, tải về điện thoại để cài.
+- **iPhone / máy tính**: bản web được đăng lên **GitHub Pages** (`https://<tên>.github.io/<repo>/`). Trên iPhone mở link bằng
+  Safari → nút Chia sẻ → **Thêm vào MH chính** để có biểu tượng như một app. Lần đầu cần bật Pages:
+  Settings → Pages → Source: **GitHub Actions**.

@@ -154,6 +154,32 @@ class DocumentStore extends ChangeNotifier {
     return updated;
   }
 
+  /// Ghép các trang [pageIds] vào một trang mới theo mẫu khung, thêm vào cuối tài liệu.
+  Future<ScanPage> addLayoutPage(String docId, List<String> pageIds, PageLayout layout) async {
+    final doc = byId(docId)!;
+    final images = <Uint8List>[];
+    for (final id in pageIds) {
+      final p = doc.pages.firstWhere((p) => p.id == id);
+      images.add(await fileOf(docId, p.processedFile).readAsBytes());
+    }
+    final composed = await compute(composeLayout, (images, layout));
+    final pageId = _uuid.v4();
+    final originalName = 'orig_$pageId.jpg';
+    final processedName = 'page_${pageId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await fileOf(docId, originalName).writeAsBytes(composed);
+    await fileOf(docId, processedName).writeAsBytes(composed);
+    final page = ScanPage(
+      id: pageId,
+      originalFile: originalName,
+      processedFile: processedName,
+      quad: Quad.full,
+      filter: ScanFilter.original,
+    );
+    _put(doc.copyWith(pages: [...doc.pages, page]));
+    await _save();
+    return page;
+  }
+
   // -------------------------------------------------------------------------
   // Chỉnh sửa trang
   // -------------------------------------------------------------------------

@@ -1,0 +1,66 @@
+# Tự động build app mỗi khi đẩy mã lên nhánh main:
+#  - Android: tệp APK cài trực tiếp, đăng ở mục Releases (tag "latest")
+#  - Web/iPhone: bản PWA đăng trên GitHub Pages, mở bằng Safari rồi "Thêm vào MH chính"
+name: Build Smart Scan
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build apk --release
+      - run: cp build/app/outputs/flutter-apk/app-release.apk SmartScan.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartScan-apk
+          path: SmartScan.apk
+      - name: Đăng APK lên Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Smart Scan (bản mới nhất)
+          body: Tải SmartScan.apk về điện thoại Android rồi mở để cài (cho phép "Cài ứng dụng không rõ nguồn" nếu máy hỏi).
+          prerelease: false
+          make_latest: true
+          files: SmartScan.apk
+
+  web:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash web/build.sh
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

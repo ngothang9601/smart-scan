@@ -654,3 +654,66 @@ List<Uint8List> filterPreviews((Uint8List, Quad, int) args) {
     for (final f in ScanFilter.values) img.encodeJpg(applyFilter(image, f), quality: 75),
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Mẫu khung: ghép nhiều ảnh vào một trang A4
+// ---------------------------------------------------------------------------
+
+enum PageLayout { idCard, two, four, six }
+
+/// Trang A4 ở 150 dpi.
+const a4Width = 1240, a4Height = 1754;
+
+/// Các ô (trái, trên, rộng, cao) tính bằng pixel trên trang A4 150 dpi.
+List<List<int>> layoutSlots(PageLayout layout) {
+  const m = 70, gap = 40;
+  const w = a4Width - 2 * m, h = a4Height - 2 * m;
+  List<List<int>> grid(int cols, int rows) {
+    final cw = (w - gap * (cols - 1)) ~/ cols, ch = (h - gap * (rows - 1)) ~/ rows;
+    return [
+      for (var r = 0; r < rows; r++)
+        for (var c = 0; c < cols; c++) [m + c * (cw + gap), m + r * (ch + gap), cw, ch],
+    ];
+  }
+
+  switch (layout) {
+    case PageLayout.idCard:
+      // Thẻ CCCD/ATM theo chuẩn ISO 85,6 × 54 mm, in đúng kích thước thật.
+      const cw = 506, ch = 319, x = (a4Width - cw) ~/ 2;
+      return [
+        [x, 360, cw, ch],
+        [x, 360 + ch + 120, cw, ch],
+      ];
+    case PageLayout.two:
+      return grid(1, 2);
+    case PageLayout.four:
+      return grid(2, 2);
+    case PageLayout.six:
+      return grid(2, 3);
+  }
+}
+
+/// Ghép [images] (JPEG) vào các ô của mẫu khung, trả về JPEG trang A4.
+Uint8List composeLayout((List<Uint8List>, PageLayout) args) {
+  final (images, layout) = args;
+  final page = img.Image(width: a4Width, height: a4Height);
+  img.fill(page, color: img.ColorRgb8(255, 255, 255));
+  final slots = layoutSlots(layout);
+  for (var i = 0; i < slots.length && i < images.length; i++) {
+    final src = img.decodeImage(images[i]);
+    if (src == null) continue;
+    final [x, y, w, h] = slots[i];
+    // Thẻ nằm dọc thì xoay ngang cho vừa khung thẻ.
+    final rotated = layout == PageLayout.idCard && src.height > src.width
+        ? img.copyRotate(src, angle: 90)
+        : src;
+    final s = math.min(w / rotated.width, h / rotated.height);
+    final fitted = img.copyResize(rotated,
+        width: math.max(1, (rotated.width * s).round()),
+        height: math.max(1, (rotated.height * s).round()),
+        interpolation: img.Interpolation.average);
+    img.compositeImage(page, fitted,
+        dstX: x + (w - fitted.width) ~/ 2, dstY: y + (h - fitted.height) ~/ 2);
+  }
+  return img.encodeJpg(page, quality: 90);
+}
