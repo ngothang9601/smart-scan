@@ -1,0 +1,1066 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0B7A68"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Smart Scan"><meta name="mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><link rel="icon" href="icon-192.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Smart Scan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Bố cục: một cột kiểu ứng dụng điện thoại, thanh tiêu đề dính trên cùng, thanh công cụ dính dưới cùng. */
+:root {
+  --paper: #EEF3F1;
+  --surface: #FFFFFF;
+  --sunken: #E2E9E6;
+  --ink: #14211D;
+  --muted: #5A6B66;
+  --line: #D3DDD9;
+  --accent: #0B7A68;
+  --accent-soft: #D4EEE8;
+  --on-accent: #FFFFFF;
+  --danger: #B42318;
+  --stage: #1A2321;
+  --on-stage: #EAF1EE;
+  --shadow: 0 1px 2px rgba(20, 33, 29, .08), 0 4px 14px rgba(20, 33, 29, .06);
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1412; --surface: #172120; --sunken: #111A18; --ink: #E4EDEA; --muted: #93A49F;
+    --line: #293632; --accent: #3CC5AA; --accent-soft: #163A33; --on-accent: #05211B; --danger: #F97066;
+    --stage: #070B0A; --on-stage: #EAF1EE; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1412; --surface: #172120; --sunken: #111A18; --ink: #E4EDEA; --muted: #93A49F;
+  --line: #293632; --accent: #3CC5AA; --accent-soft: #163A33; --on-accent: #05211B; --danger: #F97066;
+  --stage: #070B0A; --on-stage: #EAF1EE; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+header.bar .wrap { display: flex; align-items: center; gap: 8px; min-height: 56px; padding-block: 6px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
+.brand svg { flex: none; }
+.grow { flex: 1; min-width: 0; }
+.title-input { width: 100%; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 8px; font-weight: 600; font-size: 17px; text-overflow: ellipsis; }
+.title-input:hover, .title-input:focus { border-color: var(--line); background: var(--paper); outline: none; }
+
+.icon-btn { border: 0; background: transparent; width: 40px; height: 40px; border-radius: 10px; display: inline-grid; place-items: center; flex: none; }
+.icon-btn:hover { background: var(--sunken); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--sunken); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn svg, .icon-btn svg { width: 20px; height: 20px; }
+
+main { padding-block: 16px 120px; }
+.hero-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.hero-actions .btn { padding: 16px 12px; border-radius: var(--r); font-size: 16px; }
+.search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; margin-bottom: 16px; }
+.search input { border: 0; background: transparent; flex: 1; min-width: 0; padding: 8px 0; outline: none; }
+.section-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin: 4px 0 8px; }
+
+.doc-list { display: grid; gap: 8px; }
+.doc-list > * { min-width: 0; }
+.doc { display: flex; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; text-align: left; width: 100%; }
+.doc:hover { border-color: var(--accent); }
+.doc img, .doc .ph { width: 56px; height: 74px; object-fit: cover; border-radius: 6px; background: var(--sunken); flex: none; border: 1px solid var(--line); }
+.doc .meta { min-width: 0; flex: 1; }
+.doc .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc .sub { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: 1px; }
+.empty { text-align: center; color: var(--muted); padding: 40px 12px; }
+
+.notice { background: var(--accent-soft); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+
+.pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.page-card { background: none; border: 0; padding: 0; display: grid; gap: 6px; justify-items: center; }
+.page-card .frame { width: 100%; aspect-ratio: 3 / 4; background: var(--sunken); border-radius: 8px; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; box-shadow: var(--shadow); }
+.page-card img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.page-card .num { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.page-card:hover .frame { border-color: var(--accent); }
+
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.dock .wrap { display: flex; gap: 8px; padding-block: 10px; flex-wrap: wrap; }
+.dock .wrap > .btn { flex: 1 1 140px; }
+
+/* Màn hình ảnh tối */
+.stage { background: var(--stage); color: var(--on-stage); min-height: 100%; }
+.stage header.bar { background: var(--stage); border-color: rgba(255,255,255,.08); color: var(--on-stage); }
+.stage .icon-btn:hover { background: rgba(255,255,255,.1); }
+.viewer { position: relative; display: grid; place-items: center; padding: 16px; min-height: calc(100vh - 230px); }
+.viewer > * { min-width: 0; }
+.nav { position: absolute; top: 45%; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center; }
+.nav svg { width: 22px; height: 22px; }
+.nav.prev { left: max(8px, env(safe-area-inset-left, 0px)); }
+.nav.next { right: max(8px, env(safe-area-inset-right, 0px)); }
+.viewer img { max-width: 100%; max-height: calc(100vh - 260px); box-shadow: 0 6px 30px rgba(0,0,0,.5); background: #fff; }
+.tools { display: flex; justify-content: space-around; gap: 4px; padding-block: 8px; flex-wrap: wrap; }
+.tool { background: none; border: 0; color: var(--on-stage); display: grid; justify-items: center; gap: 3px; font-size: 12px; padding: 6px 4px; border-radius: 10px; min-width: 60px; }
+.tool:hover { background: rgba(255,255,255,.08); }
+.tool.on { color: var(--accent); }
+.tool:disabled { opacity: .4; }
+.tool svg { width: 22px; height: 22px; }
+.filters { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0 4px; }
+.filter { background: none; border: 0; color: var(--on-stage); display: grid; gap: 4px; justify-items: center; font-size: 12px; flex: none; }
+.filter .th { width: 62px; height: 78px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: #000 center / cover no-repeat; }
+.filter.on .th { border: 3px solid var(--accent); }
+.filter.on { color: var(--accent); }
+.stage-dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--stage); border-top: 1px solid rgba(255,255,255,.08); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 6; }
+
+.crop-area { position: relative; margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.crop-area img { display: block; width: 100%; height: 100%; }
+.crop-area svg.ov { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.handle { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; touch-action: none; display: grid; place-items: center; }
+.handle::after { content: ""; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.92); border: 3px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.loupe { position: absolute; width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.5); background: #000; }
+
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: grid; grid-template-columns: minmax(0, 760px); justify-content: center; align-items: end; }
+.sheet { background: var(--surface); color: var(--ink); width: 100%; max-width: 760px; max-height: 85vh; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet .head { display: flex; align-items: center; gap: 8px; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
+.sheet .head h2 { font-size: 16px; margin: 0; flex: 1; }
+.sheet .body { overflow: auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px)); }
+.sheet pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font); margin: 0; font-size: 15px; line-height: 1.55; user-select: text; -webkit-user-select: text; }
+.sheet .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.opt { display: flex; width: 100%; text-align: left; gap: 12px; align-items: center; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 8px; }
+.opt:hover { border-color: var(--accent); }
+.opt small { display: block; color: var(--muted); }
+
+.busy { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.5); display: grid; place-items: center; }
+.busy .box { background: var(--surface); color: var(--ink); border-radius: 14px; padding: 22px 26px; display: grid; gap: 14px; justify-items: center; min-width: 220px; max-width: 86vw; text-align: center; }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--accent-soft); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; z-index: 40; font-size: 14px; max-width: 90vw; }
+.confirm-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.layouts { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.layout { flex: none; width: 92px; display: grid; justify-items: center; gap: 6px; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 12px; text-align: center; }
+.layout.on { border: 2px solid var(--accent); color: var(--accent); font-weight: 600; }
+.preview { display: grid; place-items: center; margin-bottom: 14px; }
+.preview svg { box-shadow: var(--shadow); max-width: 100%; height: auto; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
+.pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.pick-item { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunken); aspect-ratio: 3 / 4; }
+.pick-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pick-item b { position: absolute; top: 4px; right: 4px; min-width: 22px; height: 22px; border-radius: 11px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; display: grid; place-items: center; }
+.pick-item.on { outline: 3px solid var(--accent); outline-offset: -3px; }
+.pick-item.on b { background: var(--accent); color: var(--on-accent); }
+.hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+</style>
+
+<input type="file" id="in-camera" class="hidden-input" accept="image/*" capture="environment" aria-label="Chụp ảnh tài liệu">
+<input type="file" id="in-gallery" class="hidden-input" accept="image/*" multiple aria-label="Chọn ảnh tài liệu">
+<div id="app"></div>
+
+<script>
+"use strict";
+// =====================================================================
+// Biểu tượng
+// =====================================================================
+const I = {
+  logo: '<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="1" y="1" width="26" height="26" rx="8" fill="var(--accent)"/><path d="M8 9V7.5A1.5 1.5 0 0 1 9.5 6H11M17 6h1.5A1.5 1.5 0 0 1 20 7.5V9M20 19v1.5a1.5 1.5 0 0 1-1.5 1.5H17M11 22H9.5A1.5 1.5 0 0 1 8 20.5V19" stroke="var(--on-accent)" stroke-width="2" stroke-linecap="round"/><path d="M7 14h14" stroke="var(--on-accent)" stroke-width="2" stroke-linecap="round"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
+  gallery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>',
+  text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v12M9 18h6"/></svg>',
+  crop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></svg>',
+  rotL: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v6h6"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L3 10"/></svg>',
+  rotR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L21 10"/></svg>',
+  magic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 4 1 2 2 1-2 1-1 2-1-2-2-1 2-1zM5 20 16 9M18 14l.7 1.3L20 16l-1.3.7L18 18l-.7-1.3L16 16l1.3-.7z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7l-5 5 5 5"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 7l5 5-5 5"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9l8-1 1 7-8 1z"/></svg>',
+  full: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="1"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  moveL: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H8M12 7l-5 5 5 5M4 5v14"/></svg>',
+  moveR: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h12M12 7l5 5-5 5M20 5v14"/></svg>',
+  layout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><rect x="8" y="6" width="8" height="5" rx=".5"/><rect x="8" y="13" width="8" height="5" rx=".5"/></svg>',
+  dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h10v10H9zM5 15V5h10"/></svg>',
+};
+
+// =====================================================================
+// Xử lý ảnh (nhận diện mép giấy, nắn phối cảnh, bộ lọc)
+// =====================================================================
+const FILTERS = [
+  ["original", "Gốc"], ["enhanced", "Tăng cường"], ["lighten", "Làm sáng"],
+  ["grayscale", "Xám"], ["bw", "Đen trắng"],
+];
+const FULL_QUAD = [[0, 0], [1, 0], [1, 1], [0, 1]];
+
+function canvasOf(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
+function ctx2d(c) { return c.getContext("2d", { willReadFrequently: true }); }
+
+function boxBlur(src, w, h, r) {
+  const tmp = new Uint8Array(w * h), out = new Uint8Array(w * h), d = 2 * r + 1;
+  const cl = (v, m) => v < 0 ? 0 : v > m ? m : v;
+  for (let y = 0; y < h; y++) {
+    let s = 0;
+    for (let x = -r; x <= r; x++) s += src[y * w + cl(x, w - 1)];
+    for (let x = 0; x < w; x++) { tmp[y * w + x] = (s / d) | 0; s += src[y * w + cl(x + r + 1, w - 1)] - src[y * w + cl(x - r, w - 1)]; }
+  }
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let y = -r; y <= r; y++) s += tmp[cl(y, h - 1) * w + x];
+    for (let y = 0; y < h; y++) { out[y * w + x] = (s / d) | 0; s += tmp[cl(y + r + 1, h - 1) * w + x] - tmp[cl(y - r, h - 1) * w + x]; }
+  }
+  return out;
+}
+function sobelEdges(g, w, h) {
+  const mag = new Float32Array(w * h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const gx = -g[i - w - 1] - 2 * g[i - 1] - g[i + w - 1] + g[i - w + 1] + 2 * g[i + 1] + g[i + w + 1];
+    const gy = -g[i - w - 1] - 2 * g[i - w] - g[i - w + 1] + g[i + w - 1] + 2 * g[i + w] + g[i + w + 1];
+    mag[i] = Math.sqrt(gx * gx + gy * gy);
+  }
+  const sorted = Float32Array.from(mag).sort();
+  const thr = Math.max(40, sorted[Math.floor(sorted.length * 0.88)]);
+  const out = new Uint8Array(w * h);
+  for (let i = 0; i < mag.length; i++) out[i] = mag[i] >= thr ? 1 : 0;
+  return out;
+}
+function dilate(m, w, h) {
+  const s = Uint8Array.from(m);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (s[y * w + x]) continue;
+    let hit = 0;
+    for (let dy = -1; dy <= 1 && !hit; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue;
+      for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx >= 0 && xx < w && s[yy * w + xx]) { hit = 1; break; } } }
+    if (hit) m[y * w + x] = 1;
+  }
+}
+const invert = m => { const o = new Uint8Array(m.length); for (let i = 0; i < m.length; i++) o[i] = 1 - m[i]; return o; };
+function erode(m, w, h) { const inv = invert(m); dilate(inv, w, h); for (let i = 0; i < m.length; i++) m[i] = 1 - inv[i]; }
+function openMorph(m, w, h) { erode(m, w, h); erode(m, w, h); dilate(m, w, h); dilate(m, w, h); }
+function clearBorder(m, w, h) {
+  const st = [];
+  const push = (x, y) => { const i = y * w + x; if (m[i]) { m[i] = 0; st.push(i); } };
+  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+  while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0;
+    if (x > 0) push(x - 1, y); if (x < w - 1) push(x + 1, y); if (y > 0) push(x, y - 1); if (y < h - 1) push(x, y + 1); }
+}
+function largestComponent(m, w, h) {
+  const lab = new Int32Array(w * h); let best = null, label = 0;
+  for (let s = 0; s < m.length; s++) {
+    if (!m[s] || lab[s]) continue;
+    label++; const comp = [], st = [s]; lab[s] = label;
+    while (st.length) { const i = st.pop(); comp.push(i); const x = i % w, y = (i / w) | 0;
+      const nb = []; if (x > 0) nb.push(i - 1); if (x < w - 1) nb.push(i + 1); if (y > 0) nb.push(i - w); if (y < h - 1) nb.push(i + w);
+      for (const n of nb) if (m[n] && !lab[n]) { lab[n] = label; st.push(n); } }
+    if (!best || comp.length > best.length) best = comp;
+  }
+  return best && best.length >= w * h * 0.08 ? best : null;
+}
+function polyArea(p) { let s = 0; for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
+function convexHull(pts) {
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function orderQuad(pts) {
+  const cx = pts.reduce((s, p) => s + p[0], 0) / 4, cy = pts.reduce((s, p) => s + p[1], 0) / 4;
+  const s = pts.slice().sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+  let st = 0; for (let i = 1; i < 4; i++) if (s[i][0] + s[i][1] < s[st][0] + s[st][1]) st = i;
+  return [0, 1, 2, 3].map(i => s[(st + i) % 4]);
+}
+function quadFromRegion(region, w, h, grow) {
+  const minX = new Int32Array(h).fill(w), maxX = new Int32Array(h).fill(-1);
+  for (const i of region) { const x = i % w, y = (i / w) | 0; if (x < minX[y]) minX[y] = x; if (x > maxX[y]) maxX[y] = x; }
+  const pts = [];
+  for (let y = 0; y < h; y++) { if (maxX[y] < 0) continue; pts.push([minX[y], y]); if (maxX[y] !== minX[y]) pts.push([maxX[y], y]); }
+  const hull = convexHull(pts);
+  if (hull.length < 4) return null;
+  const f = (p, k) => k === 0 ? -(p[0] + p[1]) : k === 1 ? p[0] - p[1] : k === 2 ? p[0] + p[1] : p[1] - p[0];
+  let idx = [0, 1, 2, 3].map(k => { let b = 0; for (let j = 1; j < hull.length; j++) if (f(hull[j], k) > f(hull[b], k)) b = j; return b; });
+  let best = polyArea(idx.map(j => hull[j])), improved = true, guard = 0;
+  while (improved && guard++ < 50) { improved = false;
+    for (let k = 0; k < 4; k++) for (let j = 0; j < hull.length; j++) {
+      const c = idx.slice(); c[k] = j; const a = polyArea(c.map(q => hull[q]));
+      if (a > best + 1e-9) { best = a; idx = c; improved = true; } } }
+  const cs = idx.map(j => hull[j]);
+  const cx = cs.reduce((s, p) => s + p[0], 0) / 4, cy = cs.reduce((s, p) => s + p[1], 0) / 4;
+  const clamp01 = v => Math.min(1, Math.max(0, v));
+  return orderQuad(cs.map(p => { const dx = p[0] - cx, dy = p[1] - cy, len = Math.hypot(dx, dy), k = len ? grow / len : 0;
+    return [clamp01((p[0] + dx * k + .5) / w), clamp01((p[1] + dy * k + .5) / h)]; }));
+}
+function plausible(q, maxArea) {
+  const a = polyArea(q); if (a < 0.12 || a > maxArea) return false;
+  let sign = 0;
+  for (let i = 0; i < 4; i++) { const A = q[i], B = q[(i + 1) % 4], C = q[(i + 2) % 4];
+    const c = (B[0] - A[0]) * (C[1] - B[1]) - (B[1] - A[1]) * (C[0] - B[0]);
+    if (Math.abs(c) < 1e-6) return false; if (!sign) sign = Math.sign(c); else if (Math.sign(c) !== sign) return false; }
+  return true;
+}
+function otsu(g) {
+  const hist = new Array(256).fill(0); for (const v of g) hist[v]++;
+  const total = g.length; let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+  let sumB = 0, wB = 0, best = 0, thr = 127;
+  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = total - wB; if (!wF) break;
+    sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF, b = wB * wF * (mB - mF) ** 2;
+    if (b > best) { best = b; thr = t; } }
+  return thr;
+}
+function detectGray(gray, w, h) {
+  const bl = boxBlur(gray, w, h, 2);
+  const edges = sobelEdges(bl, w, h); dilate(edges, w, h);
+  const inside = invert(edges); clearBorder(inside, w, h);
+  let reg = largestComponent(inside, w, h);
+  if (reg) { const q = quadFromRegion(reg, w, h, 1.5); if (q && plausible(q, 0.995)) return q; }
+  const t = otsu(bl);
+  for (const bright of [true, false]) {
+    const m = new Uint8Array(w * h); for (let k = 0; k < m.length; k++) m[k] = (bright ? bl[k] > t : bl[k] <= t) ? 1 : 0;
+    openMorph(m, w, h); reg = largestComponent(m, w, h); if (!reg) continue;
+    const q = quadFromRegion(reg, w, h, 0); if (q && plausible(q, 0.97)) return q;
+  }
+  return null;
+}
+function detectDocument(canvas) {
+  const s = Math.min(1, 360 / Math.max(canvas.width, canvas.height));
+  const w = Math.max(1, Math.round(canvas.width * s)), h = Math.max(1, Math.round(canvas.height * s));
+  const c = canvasOf(w, h), x = ctx2d(c); x.drawImage(canvas, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) g[i] = (0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]) | 0;
+  return detectGray(g, w, h);
+}
+function homography(from, to) {
+  const a = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = from[i], [u, v] = to[i];
+    a.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u]); a.push([0, 0, 0, x, y, 1, -v * x, -v * y, v]); }
+  for (let c = 0; c < 8; c++) {
+    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r;
+    [a[c], a[p]] = [a[p], a[c]]; const d = a[c][c]; if (Math.abs(d) < 1e-12) throw new Error("Tứ giác suy biến");
+    for (let k = c; k < 9; k++) a[c][k] /= d;
+    for (let r = 0; r < 8; r++) { if (r === c) continue; const f = a[r][c]; if (!f) continue; for (let k = c; k < 9; k++) a[r][k] -= f * a[c][k]; }
+  }
+  return a.map(r => r[8]).concat([1]);
+}
+function isFull(q) { return q.every(p => (p[0] <= .001 || p[0] >= .999) && (p[1] <= .001 || p[1] >= .999)); }
+function warp(src, quad, maxSide = 2200) {
+  const sw = src.width, sh = src.height;
+  const P = quad.map(p => [p[0] * (sw - 1), p[1] * (sh - 1)]);
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const W = Math.max(dist(P[0], P[1]), dist(P[3], P[2])), H = Math.max(dist(P[0], P[3]), dist(P[1], P[2]));
+  const s = Math.min(1, maxSide / Math.max(W, H));
+  const ow = Math.max(1, Math.round(W * s)), oh = Math.max(1, Math.round(H * s));
+  const m = homography([[0, 0], [ow - 1, 0], [ow - 1, oh - 1], [0, oh - 1]], P);
+  const sd = ctx2d(src).getImageData(0, 0, sw, sh).data;
+  const out = canvasOf(ow, oh), oc = ctx2d(out), od = oc.createImageData(ow, oh), o = od.data;
+  let k = 0;
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const z = m[6] * x + m[7] * y + m[8];
+    let fx = (m[0] * x + m[1] * y + m[2]) / z, fy = (m[3] * x + m[4] * y + m[5]) / z;
+    fx = fx < 0 ? 0 : fx > sw - 1.001 ? sw - 1.001 : fx; fy = fy < 0 ? 0 : fy > sh - 1.001 ? sh - 1.001 : fy;
+    const x0 = fx | 0, y0 = fy | 0, ax = fx - x0, ay = fy - y0;
+    const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+    for (let c = 0; c < 3; c++) {
+      const t = sd[i00 + c] + (sd[i10 + c] - sd[i00 + c]) * ax, b = sd[i01 + c] + (sd[i11 + c] - sd[i01 + c]) * ax;
+      o[k++] = t + (b - t) * ay;
+    }
+    o[k++] = 255;
+  }
+  oc.putImageData(od, 0, 0);
+  return out;
+}
+// Ước lượng nền giấy: thu nhỏ, lấy max cục bộ (bỏ chữ), làm mờ, rồi nội suy lại kích thước gốc.
+function background(data, w, h) {
+  const bw = Math.max(8, (w / 24) | 0), bh = Math.max(8, (h / 24) | 0);
+  const sm = [new Float32Array(bw * bh), new Float32Array(bw * bh), new Float32Array(bw * bh)];
+  const cnt = new Float32Array(bw * bh);
+  for (let y = 0; y < h; y++) { const by = Math.min(bh - 1, (y * bh / h) | 0);
+    for (let x = 0; x < w; x++) { const bx = Math.min(bw - 1, (x * bw / w) | 0), j = by * bw + bx, i = (y * w + x) * 4;
+      sm[0][j] += data[i]; sm[1][j] += data[i + 1]; sm[2][j] += data[i + 2]; cnt[j]++; } }
+  const res = sm.map(ch => {
+    for (let j = 0; j < ch.length; j++) ch[j] /= cnt[j] || 1;
+    const mx = new Uint8Array(bw * bh);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { let v = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = Math.min(bh - 1, Math.max(0, y + dy)), xx = Math.min(bw - 1, Math.max(0, x + dx)); v = Math.max(v, ch[yy * bw + xx]); }
+      mx[y * bw + x] = v; }
+    return boxBlur(mx, bw, bh, 2);
+  });
+  return (x, y, c) => {
+    const fx = Math.min(bw - 1, Math.max(0, (x + .5) * bw / w - .5)), fy = Math.min(bh - 1, Math.max(0, (y + .5) * bh / h - .5));
+    const x0 = fx | 0, y0 = fy | 0, x1 = Math.min(bw - 1, x0 + 1), y1 = Math.min(bh - 1, y0 + 1), ax = fx - x0, ay = fy - y0, g = res[c];
+    const t = g[y0 * bw + x0] + (g[y0 * bw + x1] - g[y0 * bw + x0]) * ax, b = g[y1 * bw + x0] + (g[y1 * bw + x1] - g[y1 * bw + x0]) * ax;
+    return t + (b - t) * ay;
+  };
+}
+function applyFilter(src, filter) {
+  if (filter === "original") return src;
+  const w = src.width, h = src.height, out = canvasOf(w, h), oc = ctx2d(out);
+  const img = ctx2d(src).getImageData(0, 0, w, h), d = img.data;
+  if (filter === "lighten") {
+    for (let i = 0; i < d.length; i += 4) for (let c = 0; c < 3; c++) d[i + c] = Math.min(255, 255 * Math.pow(d[i + c] / 255, 0.85) * 1.08);
+    oc.putImageData(img, 0, 0); return out;
+  }
+  const bg = background(d, w, h);
+  if (filter === "enhanced") {
+    for (let y = 0, i = 0; y < h; y++) for (let x = 0; x < w; x++, i += 4) for (let c = 0; c < 3; c++) {
+      const v = Math.min(1, d[i + c] / Math.max(1, bg(x, y, c))); d[i + c] = 255 * Math.pow(v, 1.6); }
+    oc.putImageData(img, 0, 0); return out;
+  }
+  const norm = new Uint8Array(w * h);
+  for (let y = 0, i = 0, j = 0; y < h; y++) for (let x = 0; x < w; x++, i += 4, j++) {
+    const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const lb = 0.299 * bg(x, y, 0) + 0.587 * bg(x, y, 1) + 0.114 * bg(x, y, 2);
+    norm[j] = 255 * Math.min(1, l / Math.max(1, lb)); }
+  const t = Math.min(otsu(norm) + 10, 225);
+  for (let j = 0, i = 0; j < norm.length; j++, i += 4) {
+    const v = filter === "bw" ? (norm[j] > t ? 255 : 0) : 255 * Math.pow(norm[j] / 255, 1.4);
+    d[i] = d[i + 1] = d[i + 2] = v; }
+  oc.putImageData(img, 0, 0); return out;
+}
+function rotate(src, turns) {
+  turns = ((turns % 4) + 4) % 4; if (!turns) return src;
+  const sw = turns % 2 ? src.height : src.width, sh = turns % 2 ? src.width : src.height;
+  const c = canvasOf(sw, sh), x = c.getContext("2d");
+  x.translate(sw / 2, sh / 2); x.rotate(turns * Math.PI / 2); x.drawImage(src, -src.width / 2, -src.height / 2);
+  return c;
+}
+function processCanvas(orig, page, maxSide) {
+  let c = isFull(page.quad) ? scaleCanvas(orig, maxSide || 2200) : warp(orig, page.quad, maxSide);
+  c = applyFilter(c, page.filter); return rotate(c, page.turns);
+}
+function scaleCanvas(src, maxSide) {
+  const s = Math.min(1, maxSide / Math.max(src.width, src.height)); if (s === 1) return src;
+  const c = canvasOf(Math.round(src.width * s), Math.round(src.height * s)), x = c.getContext("2d");
+  x.imageSmoothingQuality = "high"; x.drawImage(src, 0, 0, c.width, c.height); return c;
+}
+const toBlob = (c, q = 0.88) => new Promise(r => c.toBlob(r, "image/jpeg", q));
+async function blobToCanvas(blob, maxSide = 2400) {
+  let bmp;
+  try { bmp = await createImageBitmap(blob, { imageOrientation: "from-image" }); }
+  catch { bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error("Không đọc được ảnh")); im.src = URL.createObjectURL(blob); }); }
+  const w = bmp.width, h = bmp.height, s = Math.min(1, maxSide / Math.max(w, h));
+  const c = canvasOf(Math.round(w * s), Math.round(h * s)), x = ctx2d(c);
+  x.imageSmoothingQuality = "high"; x.drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.(); return c;
+}
+const nextFrame = () => new Promise(r => setTimeout(r, 16));
+
+// =====================================================================
+// Lưu trữ trong trình duyệt (IndexedDB, nếu bị chặn thì dùng bộ nhớ tạm)
+// =====================================================================
+const store = {
+  db: null, docs: [], mem: new Map(), persistent: false,
+  async init() {
+    try {
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open("smart-scan", 1);
+        r.onupgradeneeded = () => { r.result.createObjectStore("docs", { keyPath: "id" }); r.result.createObjectStore("blobs"); };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      });
+      this.docs = await this._req("docs", "readonly", s => s.getAll());
+      this.persistent = true;
+    } catch (e) { this.db = null; this.docs = []; }
+  },
+  _req(name, mode, fn) {
+    return new Promise((res, rej) => { const t = this.db.transaction(name, mode), r = fn(t.objectStore(name));
+      t.oncomplete = () => res(r?.result); t.onerror = () => rej(t.error); });
+  },
+  async saveDoc(doc) {
+    doc.updated = Date.now();
+    const i = this.docs.findIndex(d => d.id === doc.id); if (i >= 0) this.docs[i] = doc; else this.docs.push(doc);
+    if (this.db) try { await this._req("docs", "readwrite", s => s.put(JSON.parse(JSON.stringify(doc)))); } catch {}
+  },
+  async deleteDoc(id) {
+    const doc = this.get(id); this.docs = this.docs.filter(d => d.id !== id);
+    if (doc) for (const p of doc.pages) await this.deletePageBlobs(p);
+    if (this.db) try { await this._req("docs", "readwrite", s => s.delete(id)); } catch {}
+  },
+  get(id) { return this.docs.find(d => d.id === id); },
+  async putBlob(key, blob) {
+    this.mem.set(key, blob); urls.drop(key);
+    if (this.db) try { await this._req("blobs", "readwrite", s => s.put(blob, key)); } catch {}
+  },
+  async getBlob(key) {
+    if (this.mem.has(key)) return this.mem.get(key);
+    if (!this.db) return null;
+    try { const b = await this._req("blobs", "readonly", s => s.get(key)); if (b) this.mem.set(key, b); return b || null; } catch { return null; }
+  },
+  async deleteBlob(key) {
+    this.mem.delete(key); urls.drop(key);
+    if (this.db) try { await this._req("blobs", "readwrite", s => s.delete(key)); } catch {}
+  },
+  async deletePageBlobs(p) { for (const k of ["orig", "proc", "thumb"]) await this.deleteBlob(p.id + ":" + k); },
+};
+const urls = {
+  map: new Map(),
+  async get(key) { if (this.map.has(key)) return this.map.get(key); const b = await store.getBlob(key); if (!b) return ""; const u = URL.createObjectURL(b); this.map.set(key, u); return u; },
+  drop(key) { const u = this.map.get(key); if (u) { URL.revokeObjectURL(u); this.map.delete(key); } },
+};
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const pad = n => String(n).padStart(2, "0");
+function fmtDate(t) { const d = new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function defaultName() { const d = new Date(); return `Scan ${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(d.getHours())}.${pad(d.getMinutes())}`; }
+function docText(doc) { return doc.pages.map(p => p.ocr).filter(Boolean).join("\n\n"); }
+
+// Tạo trang từ một ảnh: chuẩn hoá, tự nhận diện mép giấy, cắt + lọc.
+async function importImage(blob) {
+  const orig = await blobToCanvas(blob);
+  await nextFrame();
+  const quad = detectDocument(orig) || FULL_QUAD.map(p => p.slice());
+  const page = { id: uid(), quad, filter: "enhanced", turns: 0, ocr: null, w: orig.width, h: orig.height };
+  await store.putBlob(page.id + ":orig", await toBlob(orig, 0.9));
+  await renderPageBlobs(page, orig);
+  return page;
+}
+async function renderPageBlobs(page, orig) {
+  orig = orig || await blobToCanvas(await store.getBlob(page.id + ":orig"));
+  await nextFrame();
+  const out = processCanvas(orig, page);
+  await store.putBlob(page.id + ":proc", await toBlob(out));
+  await store.putBlob(page.id + ":thumb", await toBlob(scaleCanvas(out, 360), 0.8));
+}
+
+// =====================================================================
+// Tiện ích giao diện
+// =====================================================================
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let busyEl = null;
+function busy(msg) {
+  if (!msg) { busyEl?.remove(); busyEl = null; return; }
+  if (!busyEl) { busyEl = document.createElement("div"); busyEl.className = "busy"; document.body.append(busyEl); }
+  busyEl.innerHTML = `<div class="box" role="status"><div class="spinner"></div><div>${esc(msg)}</div></div>`;
+}
+let toastTimer;
+function toast(msg) {
+  document.querySelector(".toast")?.remove(); clearTimeout(toastTimer);
+  const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg; document.body.append(t);
+  toastTimer = setTimeout(() => t.remove(), 3200);
+}
+function sheet(title, bodyHtml, onMount) {
+  const bg = document.createElement("div"); bg.className = "sheet-bg";
+  bg.innerHTML = `<div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Đóng">${I.close}</button></div><div class="body">${bodyHtml}</div></div>`;
+  const close = () => bg.remove();
+  bg.addEventListener("click", e => { if (e.target === bg || e.target.closest("[data-close]")) close(); });
+  document.body.append(bg); onMount?.(bg, close); return close;
+}
+function confirmSheet(title, message, action, run) {
+  sheet(title, `<p style="margin:0">${esc(message)}</p><div class="confirm-row"><button class="btn" data-close>Huỷ</button><button class="btn primary" id="cf-ok" style="background:var(--danger);border-color:var(--danger)">${esc(action)}</button></div>`,
+    (el, close) => el.querySelector("#cf-ok").onclick = () => { close(); run(); });
+}
+async function copyText(text, fallbackEl) {
+  try { await navigator.clipboard.writeText(text); toast("Đã sao chép văn bản"); }
+  catch { if (fallbackEl) { const r = document.createRange(); r.selectNodeContents(fallbackEl); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } toast("Hãy nhấn giữ để sao chép phần đã bôi đen"); }
+}
+
+// Năng lực của trang: tải tệp và hỏi Claude (dùng cho nhận dạng chữ).
+const caps = { downloads: null, sample: null, ocr: false, standalone: !window.claude?.use };
+// Chạy độc lập (GitHub Pages, cài ra màn hình chính): tải tệp bằng liên kết, đọc chữ bằng Tesseract.
+if (caps.standalone) {
+  caps.downloads = { save: async ({ filename, data }) => {
+    const file = new File([data], filename, { type: data.type || "application/octet-stream" });
+    if (navigator.canShare?.({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+      try { await navigator.share({ files: [file], title: filename }); return; } catch (e) { if (e?.name === "AbortError") return; }
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = filename;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  } };
+  caps.ocr = true;
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+let tesseract = null;
+async function tesseractWorker() {
+  if (tesseract) return tesseract;
+  if (!window.Tesseract) await new Promise((res, rej) => { const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; sc.onload = res; sc.onerror = () => rej(new Error("Không tải được bộ đọc chữ, hãy kiểm tra mạng")); document.head.append(sc); });
+  tesseract = await Tesseract.createWorker("vie+eng");
+  return tesseract;
+}
+(async () => {
+  if (caps.standalone) return;
+  try { caps.downloads = await claude.use("downloads"); } catch {}
+  try {
+    caps.sample = await claude.use("sample");
+    const lim = caps.sample ? await caps.sample.limits().catch(() => null) : null;
+    caps.ocr = !!lim?.images; caps.maxImg = lim?.images?.maxInputBytes || 4e6;
+  } catch {}
+  rerender();
+})();
+async function saveFile(filename, blob) {
+  if (!caps.downloads) { toast("Trình xem này không cho tải tệp. Hãy mở trang trong claude.ai."); return; }
+  try { await caps.downloads.save({ filename, data: blob }); }
+  catch (e) { if (e?.code !== "declined") toast("Không lưu được tệp: " + (e?.message || e)); }
+}
+
+// =====================================================================
+// Điều hướng
+// =====================================================================
+const state = { view: "library", docId: null, index: 0, query: "", showFilters: false, previews: null, previewKey: null, pickTarget: null };
+function go(view, extra = {}) { Object.assign(state, { view, showFilters: false }, extra); render(); window.scrollTo(0, 0); }
+function rerender() { if (state.view !== "crop") render(); }
+function render() {
+  document.body.classList.toggle("stage", state.view === "page" || state.view === "crop");
+  ({ library: renderLibrary, doc: renderDoc, page: renderPage, crop: renderCrop })[state.view]();
+}
+
+// Nhập ảnh từ camera / thư viện ảnh
+const inCamera = document.getElementById("in-camera"), inGallery = document.getElementById("in-gallery");
+function pick(source, docId) { state.pickTarget = docId || null; (source === "camera" ? inCamera : inGallery).click(); }
+for (const input of [inCamera, inGallery]) input.addEventListener("change", async () => {
+  const files = [...input.files]; input.value = ""; if (!files.length) return;
+  const target = state.pickTarget;
+  try {
+    const pages = [];
+    for (let i = 0; i < files.length; i++) {
+      busy(files.length > 1 ? `Đang xử lý ảnh ${i + 1}/${files.length}…` : "Đang nhận diện mép giấy…");
+      pages.push(await importImage(files[i]));
+    }
+    let doc;
+    if (target && store.get(target)) { doc = store.get(target); doc.pages.push(...pages); }
+    else doc = { id: uid(), name: defaultName(), created: Date.now(), pages };
+    await store.saveDoc(doc);
+    busy();
+    // Một ảnh: mở ngay màn hình cắt để kiểm tra mép giấy.
+    if (files.length === 1) go("crop", { docId: doc.id, index: doc.pages.length - 1, cropFrom: "doc" });
+    else go("doc", { docId: doc.id });
+  } catch (e) { busy(); toast("Lỗi xử lý ảnh: " + (e.message || e)); }
+});
+
+// =====================================================================
+// Màn hình: Thư viện
+// =====================================================================
+async function renderLibrary() {
+  const q = state.query.trim().toLowerCase();
+  const docs = store.docs.slice().sort((a, b) => b.updated - a.updated)
+    .filter(d => !q || d.name.toLowerCase().includes(q) || docText(d).toLowerCase().includes(q));
+  app.innerHTML = `
+  <header class="bar"><div class="wrap"><div class="brand">${I.logo}<span>Smart Scan</span></div></div></header>
+  <main class="wrap">
+    ${store.persistent ? "" : `<div class="notice">Trình duyệt đang chặn lưu dữ liệu, tài liệu sẽ mất khi đóng trang. Hãy tải PDF về máy sau khi quét.</div>`}
+    <div class="hero-actions">
+      <button class="btn primary" id="b-cam">${I.camera} Chụp tài liệu</button>
+      <button class="btn" id="b-gal">${I.gallery} Chọn ảnh</button>
+    </div>
+    <label class="search">${I.search}<input id="q" type="search" placeholder="Tìm theo tên hoặc nội dung chữ" value="${esc(state.query)}" aria-label="Tìm tài liệu"></label>
+    <div class="section-label">Tài liệu của bạn · ${store.docs.length}</div>
+    <div class="doc-list" id="list">
+      ${docs.length ? docs.map(d => `
+        <button class="doc" data-id="${d.id}">
+          <img alt="" data-thumb="${d.pages[0]?.id || ""}">
+          <div class="meta"><div class="name">${esc(d.name)}${d.sample ? '<span class="chip">Ví dụ</span>' : ""}</div>
+          <div class="sub">${fmtDate(d.updated)} · ${d.pages.length} trang${docText(d) ? " · có chữ" : ""}</div></div>
+        </button>`).join("") : `<div class="empty">${q ? "Không tìm thấy tài liệu phù hợp." : "Chưa có tài liệu. Nhấn “Chụp tài liệu” để quét giấy tờ, hoá đơn, sách vở."}</div>`}
+    </div>
+  </main>`;
+  app.querySelector("#b-cam").onclick = () => pick("camera");
+  app.querySelector("#b-gal").onclick = () => pick("gallery");
+  const qi = app.querySelector("#q");
+  qi.oninput = () => { state.query = qi.value; const pos = qi.selectionStart; renderLibrary().then(() => { const n = app.querySelector("#q"); n.focus(); n.setSelectionRange(pos, pos); }); };
+  app.querySelectorAll(".doc").forEach(b => b.onclick = () => go("doc", { docId: b.dataset.id }));
+  for (const im of app.querySelectorAll("img[data-thumb]")) if (im.dataset.thumb) im.src = await urls.get(im.dataset.thumb + ":thumb");
+}
+
+// =====================================================================
+// Màn hình: Tài liệu
+// =====================================================================
+async function renderDoc() {
+  const doc = store.get(state.docId); if (!doc) return go("library");
+  app.innerHTML = `
+  <header class="bar"><div class="wrap">
+    <button class="icon-btn" id="b-back" aria-label="Quay lại">${I.back}</button>
+    <div class="grow"><input class="title-input" id="name" value="${esc(doc.name)}" aria-label="Tên tài liệu"></div>
+    <button class="icon-btn" id="b-ocr" aria-label="Nhận dạng chữ tất cả trang" title="Nhận dạng chữ" ${caps.ocr ? "" : "hidden"}>${I.text}</button>
+    <button class="icon-btn" id="b-layout" aria-label="Ghép trang theo khung" title="Ghép trang theo khung">${I.layout}</button>
+    <button class="icon-btn" id="b-dup" aria-label="Nhân bản" title="Nhân bản">${I.dup}</button>
+    <button class="icon-btn" id="b-del" aria-label="Xoá tài liệu" title="Xoá tài liệu">${I.trash}</button>
+  </div></header>
+  <main class="wrap">
+    ${doc.sample ? `<div class="notice">Đây là tài liệu ví dụ được tạo sẵn để bạn thử. Mở một trang để xem cắt mép, bộ lọc và xoay; có thể xoá bất cứ lúc nào.</div>` : ""}
+    <div class="section-label">${doc.pages.length} trang · cập nhật ${fmtDate(doc.updated)}</div>
+    <div class="pages">${doc.pages.map((p, i) => `
+      <button class="page-card" data-i="${i}" aria-label="Mở trang ${i + 1}"><div class="frame"><img alt="" data-thumb="${p.id}"></div><span class="num">${i + 1}${p.ocr ? " · có chữ" : ""}</span></button>`).join("")}
+    </div>
+  </main>
+  <div class="dock"><div class="wrap">
+    <button class="btn" id="b-add">${I.camera} Thêm trang</button>
+    <button class="btn" id="b-addg">${I.gallery} Thêm ảnh</button>
+    <button class="btn primary" id="b-pdf">${I.pdf} Tải PDF</button>
+  </div></div>`;
+  app.querySelector("#b-back").onclick = () => go("library");
+  const nm = app.querySelector("#name");
+  nm.onchange = async () => { doc.name = nm.value.trim() || doc.name; nm.value = doc.name; await store.saveDoc(doc); toast("Đã đổi tên"); };
+  nm.onkeydown = e => { if (e.key === "Enter") nm.blur(); };
+  app.querySelector("#b-del").onclick = () => confirmSheet("Xoá tài liệu?", `“${doc.name}” và ${doc.pages.length} trang sẽ bị xoá khỏi trình duyệt này.`, "Xoá", async () => { await store.deleteDoc(doc.id); go("library"); });
+  app.querySelector("#b-dup").onclick = async () => {
+    busy("Đang nhân bản…");
+    const copy = { id: uid(), name: doc.name + " (bản sao)", created: Date.now(), pages: [] };
+    for (const p of doc.pages) { const np = { ...p, id: uid(), quad: p.quad.map(q => q.slice()) };
+      for (const k of ["orig", "proc", "thumb"]) { const b = await store.getBlob(p.id + ":" + k); if (b) await store.putBlob(np.id + ":" + k, b); }
+      copy.pages.push(np); }
+    await store.saveDoc(copy); busy(); toast("Đã tạo bản sao"); go("doc", { docId: copy.id });
+  };
+  app.querySelector("#b-ocr").onclick = () => ocrDoc(doc);
+  app.querySelector("#b-layout").onclick = () => layoutSheet(doc);
+  app.querySelector("#b-add").onclick = () => pick("camera", doc.id);
+  app.querySelector("#b-addg").onclick = () => pick("gallery", doc.id);
+  app.querySelector("#b-pdf").onclick = () => exportPdf(doc);
+  app.querySelectorAll(".page-card").forEach(b => b.onclick = () => go("page", { docId: doc.id, index: +b.dataset.i }));
+  for (const im of app.querySelectorAll("img[data-thumb]")) im.src = await urls.get(im.dataset.thumb + ":thumb");
+}
+
+function exportPdf(doc) {
+  sheet("Tải PDF", `
+    <button class="opt" data-size="a4">${I.pdf}<span>A4<small>Khổ giấy in thông dụng</small></span></button>
+    <button class="opt" data-size="letter">${I.pdf}<span>Letter<small>Khổ giấy Mỹ</small></span></button>
+    <button class="opt" data-size="fit">${I.pdf}<span>Vừa ảnh<small>Mỗi trang đúng kích thước ảnh quét</small></span></button>`,
+    (el, close) => el.querySelectorAll("[data-size]").forEach(b => b.onclick = async () => {
+      close(); busy("Đang tạo PDF…");
+      try {
+        const { jsPDF } = window.jspdf;
+        let pdf = null;
+        for (const p of doc.pages) {
+          const blob = await store.getBlob(p.id + ":proc");
+          const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+          const dim = await new Promise(r => { const im = new Image(); im.onload = () => r([im.naturalWidth, im.naturalHeight]); im.src = dataUrl; });
+          const land = dim[0] > dim[1];
+          let fmt, pw, ph;
+          if (b.dataset.size === "fit") { pw = dim[0] * 72 / 150; ph = dim[1] * 72 / 150; fmt = [pw, ph]; }
+          else { const base = b.dataset.size === "a4" ? [595.28, 841.89] : [612, 792]; [pw, ph] = land ? [base[1], base[0]] : base; fmt = [pw, ph]; }
+          const orient = pw > ph ? "l" : "p";
+          if (!pdf) pdf = new jsPDF({ unit: "pt", format: fmt, orientation: orient, compress: true });
+          else pdf.addPage(fmt, orient);
+          const m = b.dataset.size === "fit" ? 0 : 18, s = Math.min((pw - 2 * m) / dim[0], (ph - 2 * m) / dim[1]);
+          const w = dim[0] * s, h = dim[1] * s;
+          pdf.addImage(dataUrl, "JPEG", (pw - w) / 2, (ph - h) / 2, w, h, undefined, "FAST");
+        }
+        pdf.setProperties({ title: doc.name, creator: "Smart Scan" });
+        const out = pdf.output("blob");
+        busy();
+        await saveFile(doc.name.replace(/[\\/:*?"<>|]/g, "_") + ".pdf", out);
+      } catch (e) { busy(); toast("Không tạo được PDF: " + (e.message || e)); }
+    }));
+}
+
+// =====================================================================
+// Mẫu khung: ghép nhiều trang vào một trang A4 (150 dpi)
+// =====================================================================
+const A4W = 1240, A4H = 1754;
+const LAYOUTS = [
+  { id: "idcard", label: "CCCD / thẻ 2 mặt", hint: "Mặt trước và mặt sau, in đúng cỡ thẻ thật 85,6 × 54 mm", n: 2 },
+  { id: "two", label: "2 ảnh", hint: "Hai ảnh xếp trên dưới", n: 2 },
+  { id: "four", label: "4 ảnh", hint: "Lưới 2 × 2", n: 4 },
+  { id: "six", label: "6 ảnh", hint: "Lưới 2 × 3", n: 6 },
+];
+function layoutSlots(id) {
+  const m = 70, gap = 40, w = A4W - 2 * m, h = A4H - 2 * m;
+  const grid = (cols, rows) => { const cw = ((w - gap * (cols - 1)) / cols) | 0, ch = ((h - gap * (rows - 1)) / rows) | 0, out = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([m + c * (cw + gap), m + r * (ch + gap), cw, ch]); return out; };
+  if (id === "idcard") { const cw = 506, ch = 319, x = ((A4W - cw) / 2) | 0; return [[x, 360, cw, ch], [x, 360 + ch + 120, cw, ch]]; }
+  return id === "two" ? grid(1, 2) : id === "four" ? grid(2, 2) : grid(2, 3);
+}
+function layoutIcon(id) {
+  return `<svg viewBox="0 0 ${A4W} ${A4H}" width="62" height="88"><rect width="${A4W}" height="${A4H}" fill="#fff" stroke="#9aa" stroke-width="16"/>${layoutSlots(id).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="20" fill="var(--accent)" opacity=".45"/>`).join("")}</svg>`;
+}
+async function composeLayout(blobs, id) {
+  const page = canvasOf(A4W, A4H), x = page.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, A4W, A4H); x.imageSmoothingQuality = "high";
+  const slots = layoutSlots(id);
+  for (let i = 0; i < slots.length && i < blobs.length; i++) {
+    let c = await blobToCanvas(blobs[i]);
+    if (id === "idcard" && c.height > c.width) c = rotate(c, 1); // thẻ chụp dọc thì xoay ngang
+    const [sx, sy, sw, sh] = slots[i], s = Math.min(sw / c.width, sh / c.height), w = c.width * s, h = c.height * s;
+    x.drawImage(c, sx + (sw - w) / 2, sy + (sh - h) / 2, w, h);
+  }
+  return page;
+}
+function layoutSheet(doc) {
+  // Tự điền khung bằng các trang quét theo đúng thứ tự (bỏ qua trang đã ghép).
+  const sources = () => { const s = doc.pages.filter(p => !p.layout); return s.length ? s : doc.pages; };
+  const autoFill = () => sources().slice(0, layout.n).map(p => p.id);
+  let layout = LAYOUTS[0], sel = autoFill();
+  sheet("Ghép trang theo khung", `<div id="lay"></div>`, async (el, close) => {
+    const thumbs = {}; for (const p of doc.pages) thumbs[p.id] = await urls.get(p.id + ":thumb");
+    // Xem trước trang A4 với ảnh đã đính vào từng ô.
+    const previewSvg = () => `<svg viewBox="0 0 ${A4W} ${A4H}" width="180" height="${Math.round(180 * A4H / A4W)}" role="img" aria-label="Xem trước trang ghép"><rect width="${A4W}" height="${A4H}" fill="#fff" stroke="#9aa" stroke-width="8"/>${layoutSlots(layout.id).map(([x, y, w, h], k) => sel[k]
+      ? `<image href="${thumbs[sel[k]]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--accent)" opacity=".18"/><text x="${x + w / 2}" y="${y + h / 2}" font-size="60" text-anchor="middle" dominant-baseline="middle" fill="var(--muted)">${k + 1}</text>`).join("")}</svg>`;
+    const draw = () => {
+      el.querySelector("#lay").innerHTML = `
+        <div class="section-label">1. Chọn mẫu khung</div>
+        <div class="layouts">${LAYOUTS.map(l => `<button class="layout ${l === layout ? "on" : ""}" data-l="${l.id}">${layoutIcon(l.id)}<span>${l.label}</span></button>`).join("")}</div>
+        <p class="hint">${esc(layout.hint)}</p>
+        <div class="preview">${previewSvg()}</div>
+        <div class="section-label">2. Các trang được điền vào khung · ${sel.length}/${layout.n}</div>
+        <p class="hint">Đã tự điền theo thứ tự. Chạm vào trang để bỏ hoặc chọn lại.</p>
+        <div class="pick">${doc.pages.map((p, i) => { const o = sel.indexOf(p.id);
+          return `<button class="pick-item ${o >= 0 ? "on" : ""}" data-p="${p.id}" aria-pressed="${o >= 0}"><img src="${thumbs[p.id]}" alt="Trang ${i + 1}"><b>${o >= 0 ? o + 1 : i + 1}</b></button>`; }).join("")}</div>
+        <div class="confirm-row">${sources().length > layout.n ? `<button class="btn" id="b-all">Ghép tất cả (${Math.ceil(sources().length / layout.n)} trang)</button>` : ""}<button class="btn primary" id="b-make" ${sel.length ? "" : "disabled"}>${I.layout} Tạo trang ghép</button></div>`;
+      el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { layout = LAYOUTS.find(l => l.id === b.dataset.l); sel = autoFill(); draw(); });
+      el.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const id = b.dataset.p, k = sel.indexOf(id);
+        if (k >= 0) sel.splice(k, 1); else { if (sel.length >= layout.n) sel.shift(); sel.push(id); } draw(); });
+      const make = async groups => {
+        close();
+        try {
+          const first = doc.pages.length;
+          for (let g = 0; g < groups.length; g++) {
+            busy(groups.length > 1 ? `Đang ghép trang ${g + 1}/${groups.length}…` : "Đang ghép trang…");
+            const blobs = []; for (const id of groups[g]) blobs.push(await store.getBlob(id + ":proc"));
+            const composed = await composeLayout(blobs, layout.id);
+            const page = { id: uid(), quad: FULL_QUAD.map(p => p.slice()), filter: "original", turns: 0, ocr: null, w: A4W, h: A4H, layout: layout.id };
+            await store.putBlob(page.id + ":orig", await toBlob(composed, 0.92));
+            await renderPageBlobs(page, composed);
+            doc.pages.push(page); await store.saveDoc(doc);
+          }
+          busy(); go("page", { docId: doc.id, index: first });
+        } catch (e) { busy(); toast("Không ghép được: " + (e.message || e)); }
+      };
+      el.querySelector("#b-make").onclick = () => make([sel]);
+      const all = el.querySelector("#b-all");
+      if (all) all.onclick = () => { const ids = sources().map(p => p.id), groups = [];
+        for (let i = 0; i < ids.length; i += layout.n) groups.push(ids.slice(i, i + layout.n)); make(groups); };
+    };
+    draw();
+  });
+}
+
+// Nhận dạng chữ bằng Claude (ảnh trang được gửi cho Claude đọc).
+async function ocrPage(page) {
+  if (caps.standalone) {
+    const w = await tesseractWorker();
+    const { data } = await w.recognize(await store.getBlob(page.id + ":proc"));
+    return (data.text || "").trim();
+  }
+  let blob = await store.getBlob(page.id + ":proc");
+  if (blob.size > (caps.maxImg || 4e6)) blob = await toBlob(scaleCanvas(await blobToCanvas(blob), 1600), 0.8);
+  const r = await caps.sample(
+    "Đây là ảnh một trang tài liệu đã quét. Hãy chép lại chính xác toàn bộ chữ trong ảnh theo đúng thứ tự đọc, giữ nguyên dấu tiếng Việt và xuống dòng như trong tài liệu. Bảng thì viết mỗi hàng một dòng, các ô cách nhau bởi ' | '. Chỉ trả về văn bản đã chép, không thêm lời giải thích hay định dạng Markdown. Nếu ảnh không có chữ, trả về đúng một dấu gạch ngang: -",
+    { images: [blob], modelTier: "default", cache: false });
+  const t = (r.text || "").trim();
+  return t === "-" ? "" : t;
+}
+async function ocrDoc(doc) {
+  if (!caps.ocr) return;
+  const todo = doc.pages.filter(p => p.ocr == null);
+  try {
+    for (let i = 0; i < todo.length; i++) { busy(`Đang nhận dạng chữ trang ${i + 1}/${todo.length}…`); todo[i].ocr = await ocrPage(todo[i]); await store.saveDoc(doc); }
+    busy(); showText(doc.name, docText(doc)); render();
+  } catch (e) { busy(); toast(e?.code === "not_granted" ? "Bạn chưa cho phép trang dùng Claude để đọc chữ." : "Không nhận dạng được: " + (e?.message || e)); render(); }
+}
+function showText(title, text) {
+  sheet("Văn bản · " + title, `<pre id="ocr-text">${esc(text || "Không tìm thấy chữ.")}</pre>
+    <div class="row"><button class="btn primary" id="b-copy" ${text ? "" : "disabled"}>${I.copy} Sao chép</button><button class="btn" id="b-txt" ${text ? "" : "disabled"}>${I.download} Tải tệp .txt</button></div>`,
+    el => { el.querySelector("#b-copy").onclick = () => copyText(text, el.querySelector("#ocr-text"));
+      el.querySelector("#b-txt").onclick = () => saveFile(title.replace(/[\\/:*?"<>|]/g, "_") + ".txt", new Blob([text], { type: "text/plain;charset=utf-8" })); });
+}
+
+// =====================================================================
+// Màn hình: Trang (xem, xoay, bộ lọc, chữ, sắp xếp, xoá)
+// =====================================================================
+async function renderPage() {
+  const doc = store.get(state.docId); if (!doc) return go("library");
+  const i = state.index = Math.max(0, Math.min(state.index, doc.pages.length - 1)), page = doc.pages[i];
+  app.innerHTML = `
+  <header class="bar"><div class="wrap">
+    <button class="icon-btn" id="b-back" aria-label="Quay lại">${I.back}</button>
+    <div class="grow" style="font-weight:600;font-variant-numeric:tabular-nums">Trang ${i + 1}/${doc.pages.length}</div>
+    <button class="icon-btn" id="b-mvl" aria-label="Đổi chỗ với trang trước" title="Đổi chỗ với trang trước" ${i ? "" : "hidden"}>${I.moveL}</button>
+    <button class="icon-btn" id="b-mvr" aria-label="Đổi chỗ với trang sau" title="Đổi chỗ với trang sau" ${i < doc.pages.length - 1 ? "" : "hidden"}>${I.moveR}</button>
+    <button class="icon-btn" id="b-jpg" aria-label="Tải ảnh JPG" title="Tải ảnh JPG">${I.download}</button>
+    <button class="icon-btn" id="b-del" aria-label="Xoá trang" title="Xoá trang">${I.trash}</button>
+  </div></header>
+  <div class="viewer" id="viewer"><img id="pimg" alt="Trang ${i + 1}">
+    ${i ? `<button class="nav prev" id="t-prev" aria-label="Trang trước">${I.left}</button>` : ""}
+    ${i < doc.pages.length - 1 ? `<button class="nav next" id="t-next" aria-label="Trang sau">${I.right}</button>` : ""}
+  </div>
+  <div class="stage-dock"><div class="wrap">
+    ${state.showFilters ? `<div class="filters">${FILTERS.map(([k, label], j) => `<button class="filter ${page.filter === k ? "on" : ""}" data-f="${k}"><span class="th" data-j="${j}"></span>${label}</button>`).join("")}</div>` : ""}
+    <div class="tools">
+      <button class="tool" id="t-crop">${I.crop}Cắt</button>
+      <button class="tool" id="t-rl">${I.rotL}Xoay trái</button>
+      <button class="tool" id="t-rr">${I.rotR}Xoay phải</button>
+      <button class="tool ${state.showFilters ? "on" : ""}" id="t-flt">${I.magic}Bộ lọc</button>
+      <button class="tool" id="t-ocr" ${caps.ocr ? "" : "hidden"}>${I.text}Đọc chữ</button>
+    </div>
+  </div></div>`;
+  app.querySelector("#viewer").style.paddingBottom = state.showFilters ? "220px" : "110px";
+  app.querySelector("#pimg").src = await urls.get(page.id + ":proc");
+  const $ = s => app.querySelector(s);
+  $("#b-back").onclick = () => go("doc");
+  if ($("#t-prev")) $("#t-prev").onclick = () => go("page", { index: i - 1 });
+  if ($("#t-next")) $("#t-next").onclick = () => go("page", { index: i + 1 });
+  const move = async d => { const [p] = doc.pages.splice(i, 1); doc.pages.splice(i + d, 0, p); await store.saveDoc(doc); go("page", { index: i + d }); };
+  $("#b-mvl").onclick = () => move(-1); $("#b-mvr").onclick = () => move(1);
+  $("#b-jpg").onclick = async () => saveFile(`${doc.name.replace(/[\\/:*?"<>|]/g, "_")} - trang ${i + 1}.jpg`, await store.getBlob(page.id + ":proc"));
+  $("#b-del").onclick = () => confirmSheet("Xoá trang?", `Trang ${i + 1} sẽ bị xoá vĩnh viễn.`, "Xoá", async () => {
+    doc.pages.splice(i, 1); await store.deletePageBlobs(page);
+    if (!doc.pages.length) { await store.deleteDoc(doc.id); return go("library"); }
+    await store.saveDoc(doc); go("page", { index: Math.min(i, doc.pages.length - 1) });
+  });
+  $("#t-crop").onclick = () => go("crop", { cropFrom: "page" });
+  const update = async (changes, msg) => {
+    busy(msg);
+    Object.assign(page, changes);
+    await renderPageBlobs(page); await store.saveDoc(doc); state.previewKey = null; busy(); render();
+  };
+  $("#t-rl").onclick = () => update({ turns: (page.turns + 3) % 4 }, "Đang xoay…");
+  $("#t-rr").onclick = () => update({ turns: (page.turns + 1) % 4 }, "Đang xoay…");
+  $("#t-flt").onclick = () => { state.showFilters = !state.showFilters; render(); };
+  $("#t-ocr").onclick = async () => {
+    if (page.ocr == null) {
+      try { busy("Đang nhận dạng chữ…"); page.ocr = await ocrPage(page); await store.saveDoc(doc); busy(); }
+      catch (e) { busy(); return toast(e?.code === "not_granted" ? "Bạn chưa cho phép trang dùng Claude để đọc chữ." : "Không nhận dạng được: " + (e?.message || e)); }
+    }
+    showText(`${doc.name} – trang ${i + 1}`, page.ocr);
+  };
+  app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { if (b.dataset.f !== page.filter) update({ filter: b.dataset.f }, "Đang áp dụng bộ lọc…"); });
+  if (state.showFilters) {
+    const key = page.id + JSON.stringify(page.quad) + page.turns;
+    if (state.previewKey !== key) {
+      const orig = await blobToCanvas(await store.getBlob(page.id + ":orig"), 900);
+      let base = isFull(page.quad) ? scaleCanvas(orig, 240) : warp(orig, page.quad, 240);
+      base = rotate(base, page.turns);
+      state.previews = FILTERS.map(([k]) => applyFilter(base, k).toDataURL("image/jpeg", 0.75)); state.previewKey = key;
+    }
+    app.querySelectorAll(".th").forEach(t => t.style.backgroundImage = `url(${state.previews[+t.dataset.j]})`);
+  }
+}
+
+// =====================================================================
+// Màn hình: Cắt ảnh (kéo 4 góc, có kính lúp)
+// =====================================================================
+async function renderCrop() {
+  const doc = store.get(state.docId); if (!doc) return go("library");
+  const page = doc.pages[state.index]; if (!page) return go("doc");
+  let quad = page.quad.map(p => p.slice());
+  const origBlob = await store.getBlob(page.id + ":orig");
+  const origUrl = await urls.get(page.id + ":orig");
+  const origCanvas = await blobToCanvas(origBlob);
+  app.innerHTML = `
+  <header class="bar"><div class="wrap">
+    <button class="icon-btn" id="b-back" aria-label="Huỷ">${I.back}</button>
+    <div class="grow" style="font-weight:600">Cắt ảnh · trang ${state.index + 1}</div>
+    <button class="btn primary" id="b-ok">${I.check} Xong</button>
+  </div></header>
+  <div class="viewer" id="cv" style="padding-bottom:110px"><div class="crop-area" id="area">
+    <img src="${origUrl}" alt="Ảnh gốc" draggable="false">
+    <svg class="ov" id="ov"></svg>
+    ${[0, 1, 2, 3].map(k => `<div class="handle" data-k="${k}" role="slider" aria-label="Góc ${["trên trái", "trên phải", "dưới phải", "dưới trái"][k]}" tabindex="0"></div>`).join("")}
+    <canvas class="loupe" id="loupe" width="220" height="220" hidden></canvas>
+  </div></div>
+  <div class="stage-dock"><div class="wrap"><div class="tools">
+    <button class="tool" id="t-auto">${I.auto}Tự động</button>
+    <button class="tool" id="t-full">${I.full}Toàn ảnh</button>
+    <button class="tool" id="t-ok">${I.check}Xong</button>
+  </div></div></div>`;
+  const area = app.querySelector("#area"), ov = app.querySelector("#ov"), loupe = app.querySelector("#loupe"), lx = loupe.getContext("2d");
+  const handles = [...app.querySelectorAll(".handle")];
+  const fit = () => {
+    const cv = app.querySelector("#cv"); if (!cv) return;
+    const maxW = Math.min(cv.clientWidth - 40, 720), maxH = window.innerHeight - 240;
+    const s = Math.min(maxW / origCanvas.width, maxH / origCanvas.height);
+    area.style.width = origCanvas.width * s + "px"; area.style.height = origCanvas.height * s + "px"; draw();
+  };
+  const draw = () => {
+    const w = area.clientWidth, h = area.clientHeight, pts = quad.map(p => `${p[0] * w},${p[1] * h}`).join(" ");
+    ov.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    ov.innerHTML = `<path d="M0 0H${w}V${h}H0Z M${quad.map(p => `${p[0] * w} ${p[1] * h}`).join(" L")}Z" fill="rgba(0,0,0,.5)" fill-rule="evenodd"/>
+      <polygon points="${pts}" fill="rgba(60,197,170,.15)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    handles.forEach((hd, k) => { hd.style.left = quad[k][0] * w + "px"; hd.style.top = quad[k][1] * h + "px"; });
+  };
+  const showLoupe = k => {
+    const w = area.clientWidth, h = area.clientHeight, [nx, ny] = quad[k];
+    loupe.hidden = false; loupe.style.left = (nx * w - 55) + "px"; loupe.style.top = (ny * h - 150) + "px";
+    const sx = nx * origCanvas.width, sy = ny * origCanvas.height, r = Math.max(origCanvas.width, origCanvas.height) / 14;
+    lx.fillStyle = "#000"; lx.fillRect(0, 0, 220, 220);
+    lx.drawImage(origCanvas, sx - r, sy - r, 2 * r, 2 * r, 0, 0, 220, 220);
+    lx.strokeStyle = "#3CC5AA"; lx.lineWidth = 3; lx.beginPath(); lx.moveTo(110, 90); lx.lineTo(110, 130); lx.moveTo(90, 110); lx.lineTo(130, 110); lx.stroke();
+  };
+  handles.forEach((hd, k) => {
+    hd.addEventListener("pointerdown", e => { e.preventDefault(); hd.setPointerCapture(e.pointerId); showLoupe(k); });
+    hd.addEventListener("pointermove", e => {
+      if (!hd.hasPointerCapture(e.pointerId)) return;
+      const r = area.getBoundingClientRect();
+      quad[k] = [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))];
+      draw(); showLoupe(k);
+    });
+    const end = () => { loupe.hidden = true; };
+    hd.addEventListener("pointerup", end); hd.addEventListener("pointercancel", end);
+    hd.addEventListener("keydown", e => {
+      const d = { ArrowLeft: [-.01, 0], ArrowRight: [.01, 0], ArrowUp: [0, -.01], ArrowDown: [0, .01] }[e.key]; if (!d) return;
+      e.preventDefault(); quad[k] = [Math.min(1, Math.max(0, quad[k][0] + d[0])), Math.min(1, Math.max(0, quad[k][1] + d[1]))]; draw();
+    });
+  });
+  const back = () => go(state.cropFrom === "page" ? "page" : "doc");
+  const done = async () => {
+    busy("Đang cắt và nắn thẳng…");
+    const changed = JSON.stringify(quad) !== JSON.stringify(page.quad);
+    page.quad = quad; if (changed) page.ocr = null;
+    await renderPageBlobs(page, origCanvas); await store.saveDoc(doc); state.previewKey = null; busy();
+    go(state.cropFrom === "page" ? "page" : "doc");
+  };
+  app.querySelector("#b-back").onclick = back;
+  app.querySelector("#b-ok").onclick = done; app.querySelector("#t-ok").onclick = done;
+  app.querySelector("#t-full").onclick = () => { quad = FULL_QUAD.map(p => p.slice()); draw(); };
+  app.querySelector("#t-auto").onclick = () => { const q = detectDocument(origCanvas); if (q) { quad = q; draw(); } else toast("Không tìm thấy mép giấy, hãy kéo các góc bằng tay."); };
+  window.onresize = () => state.view === "crop" ? fit() : null;
+  requestAnimationFrame(fit);
+}
+
+// =====================================================================
+// Tài liệu ví dụ: một tờ hoá đơn nghiêng trên mặt bàn, để thử ngay
+// =====================================================================
+async function makeSamplePhoto() {
+  const W = 1200, H = 1600, c = canvasOf(W, H), x = c.getContext("2d");
+  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#5b4636"); g.addColorStop(1, "#3b2c22");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) { x.strokeStyle = `rgba(0,0,0,${0.05 + Math.random() * 0.08})`; x.lineWidth = 2 + Math.random() * 5; x.beginPath(); const y = Math.random() * H; x.moveTo(0, y); x.bezierCurveTo(W / 3, y + 30, 2 * W / 3, y - 30, W, y + 10); x.stroke(); }
+  x.save(); x.translate(W / 2, H / 2); x.rotate(-0.09);
+  const pw = 820, ph = 1160;
+  x.shadowColor = "rgba(0,0,0,.45)"; x.shadowBlur = 40; x.shadowOffsetY = 14;
+  x.fillStyle = "#ecebe4"; x.fillRect(-pw / 2, -ph / 2, pw, ph); x.shadowColor = "transparent";
+  const sh = x.createLinearGradient(-pw / 2, 0, pw / 2, 0); sh.addColorStop(0, "rgba(0,0,0,.10)"); sh.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = sh; x.fillRect(-pw / 2, -ph / 2, pw, ph);
+  x.fillStyle = "#1d2422"; x.textBaseline = "top";
+  const L = -pw / 2 + 60; let y = -ph / 2 + 70;
+  x.font = "700 44px 'Be Vietnam Pro', sans-serif"; x.fillText("HOÁ ĐƠN BÁN HÀNG", L, y); y += 64;
+  x.font = "400 24px 'Be Vietnam Pro', sans-serif";
+  for (const t of ["Cửa hàng Văn phòng phẩm Minh An", "12 Nguyễn Trãi, Q.1, TP. Hồ Chí Minh", "Số HĐ: 0001285   Ngày 28/10/2026"]) { x.fillText(t, L, y); y += 38; }
+  y += 24; x.fillRect(L, y, pw - 120, 3); y += 26;
+  x.font = "600 24px 'Be Vietnam Pro', sans-serif"; x.fillText("Mặt hàng", L, y); x.fillText("SL", L + 430, y); x.fillText("Thành tiền", L + 520, y); y += 44;
+  x.font = "400 24px 'Be Vietnam Pro', sans-serif";
+  const rows = [["Giấy A4 Double A (ram)", "5", "425.000"], ["Bút bi Thiên Long TL-027", "20", "100.000"], ["Bìa còng 7cm", "4", "180.000"], ["Kẹp giấy 32mm (hộp)", "3", "36.000"], ["Sổ tay bìa da A5", "2", "130.000"]];
+  for (const r of rows) { x.fillText(r[0], L, y); x.fillText(r[1], L + 430, y); x.fillText(r[2], L + 520, y); y += 42; }
+  y += 10; x.fillRect(L, y, pw - 120, 2); y += 24;
+  x.font = "700 28px 'Be Vietnam Pro', sans-serif"; x.fillText("Tổng cộng", L, y); x.fillText("871.000 đ", L + 520, y); y += 70;
+  x.font = "400 22px 'Be Vietnam Pro', sans-serif"; x.fillText("Cảm ơn quý khách. Hẹn gặp lại!", L, y);
+  x.restore();
+  return await toBlob(c, 0.9);
+}
+async function seedSample() {
+  let seeded = false; try { seeded = localStorage.getItem("smart-scan-seeded") === "1"; } catch {}
+  if (seeded || store.docs.length) return;
+  try { await document.fonts?.load("700 44px 'Be Vietnam Pro'"); } catch {}
+  const page = await importImage(await makeSamplePhoto());
+  await store.saveDoc({ id: uid(), name: "Ví dụ: hoá đơn văn phòng phẩm", created: Date.now(), pages: [page], sample: true });
+  try { localStorage.setItem("smart-scan-seeded", "1"); } catch {}
+}
+
+(async () => {
+  await store.init();
+  render();
+  await seedSample();
+  if (state.view === "library") render();
+})();
+</script>
+</body></html>
