@@ -74,3 +74,7 @@ Yêu cầu iOS 15.5 trở lên (do ML Kit). Cần tài khoản Apple Developer �
 
 ## Giấy phép tài nguyên
 Font `assets/fonts/NotoSans-Regular.ttf` theo giấy phép SIL Open Font License 1.1 (xem `assets/fonts/OFL.txt`).
+
+## Bản web
+`web/smart-scan.html` là bản chạy trên trình duyệt (một tệp HTML): chọn hoặc chụp ảnh, tự nhận diện mép giấy, cắt, nắn thẳng,
+bộ lọc, nhiều trang, xuất PDF. Tài liệu được lưu trong trình duyệt (IndexedDB).
